@@ -45,6 +45,23 @@ bool isSudokuSolved(Puzzle puzzle) {
             }
         } 
         // Checks grids
+        for (int vertPadding = 0; vertPadding <= GRID_SIZE-3; vertPadding += 3) {
+            for (int horzPadding = 0; horzPadding <= GRID_SIZE-3; horzPadding += 3) {
+                for (int num = 1; num <= GRID_SIZE; ++num) {
+                    int count = 0;
+                    for (int i = horzPadding; i < horzPadding+3; ++i) {
+                        for (int j = vertPadding; j < vertPadding+3; ++j) {
+                            if (puzzle.grid[i][j] == num) {
+                                ++count;
+                            }
+                        }
+                    }
+                    if (count != 1) {
+                        return false;
+                    }
+                }
+            }
+        }
 
     return true;
 }
@@ -62,8 +79,47 @@ int main()
         {6, 9, 2, 3, 5, 1, 8, 7, 4},
         {7, 4, 5, 2, 8, 6, 3, 1, 9}
         }};
+    
+    Puzzle exWrong1 = {{
+        {3, 1, 6, 5, 7, 8, 4, 9, 2},
+        {5, 2, 9, 1, 3, 4, 7, 6, 8},
+        {4, 8, 7, 6, 2, 9, 5, 3, 1},
+        {2, 6, 3, 4, 1, 5, 5, 8, 7},
+        {9, 7, 4, 8, 6, 3, 1, 2, 5},
+        {8, 5, 1, 7, 9, 2, 6, 4, 3}, 
+        {1, 3, 8, 9, 4, 7, 2, 5, 6},
+        {6, 9, 2, 3, 5, 1, 8, 7, 4},
+        {7, 4, 5, 3, 8, 6, 3, 1, 9}
+        }};
+
+    Puzzle exWrong2 = {{
+        {3, 1, 6, 5, 7, 8, 4, 9, 9},
+        {5, 2, 9, 1, 3, 4, 7, 6, 8},
+        {4, 8, 7, 6, 2, 9, 5, 3, 1},
+        {2, 6, 3, 4, 1, 5, 9, 8, 7},
+        {9, 7, 4, 8, 6, 3, 1, 2, 5},
+        {8, 5, 1, 7, 9, 2, 6, 4, 3}, 
+        {1, 3, 8, 9, 4, 7, 2, 5, 6},
+        {6, 9, 2, 3, 5, 1, 8, 7, 4},
+        {7, 4, 1, 2, 8, 6, 3, 1, 9}
+        }};
+
+    Puzzle exHas0 = {{
+        {3, 1, 6, 5, 7, 8, 4, 9, 2},
+        {5, 2, 9, 1, 3, 4, 7, 6, 8},
+        {4, 8, 7, 6, 2, 9, 5, 3, 1},
+        {2, 6, 3, 4, 1, 5, 9, 8, 7},
+        {9, 7, 4, 8, 6, 3, 1, 2, 5},
+        {8, 5, 1, 7, 9, 2, 6, 4, 3}, 
+        {1, 3, 8, 9, 4, 7, 2, 5, 6},
+        {6, 9, 2, 3, 5, 1, 8, 7, 4},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0}
+        }};
 
     assert(isSudokuSolved(exSolved) == true);
+    assert(isSudokuSolved(exWrong1) == false);
+    assert(isSudokuSolved(exWrong1) == false);
+    assert(isSudokuSolved(exHas0) == false);
 
     return 0;
 }

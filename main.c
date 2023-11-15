@@ -3,6 +3,8 @@
 #include <stdbool.h>
 
 #define GRID_SIZE 9
+#define ANSI_COLOR_MAGENTA "\x1b[35m"
+#define ANSI_COLOR_RESET   "\x1b[0m"
 
 typedef struct Puzzle 
 {
@@ -21,8 +23,7 @@ void generateBitmap(Puzzle *puzzle) {
     }
 }
 
-Puzzle copyPuzzle(Puzzle puzzle, Puzzle *newPuzzle) {
-    Puzzle newPuzzle; 
+void copyPuzzle(Puzzle puzzle, Puzzle *newPuzzle) {
     for (int i = 0; i < GRID_SIZE; ++i) {
         for (int j = 0; j < GRID_SIZE; ++j) {
             newPuzzle->grid[i][j] = puzzle.grid[i][j];
@@ -31,7 +32,15 @@ Puzzle copyPuzzle(Puzzle puzzle, Puzzle *newPuzzle) {
     }
 }
 
-void outputGrid(int grid[GRID_SIZE][GRID_SIZE]) {
+int changeValue(Puzzle *puzzle, int x, int y, int value) {
+    if (puzzle->map[GRID_SIZE-y][x-1] == 0) {
+        puzzle->grid[GRID_SIZE-y][x-1] = value;
+        return 0;
+    }
+    return -1; 
+}
+
+void outputPuzzle(Puzzle puzzle) {
     for (int i = 0; i < GRID_SIZE; ++i) {
         if ((i % 3 == 0) && (i > 0)) {
             printf("|-----------------------|\n");
@@ -40,23 +49,26 @@ void outputGrid(int grid[GRID_SIZE][GRID_SIZE]) {
             if (j % 3 == 0) {
                 printf("| ");
             }
-            printf("%d ", grid[i][j]);
+            if (puzzle.map[i][j] == 1){
+                printf(ANSI_COLOR_MAGENTA "%d " ANSI_COLOR_RESET, puzzle.grid[i][j]); 
+            }
+            else {
+                printf("%d ", puzzle.grid[i][j]); 
+            }
+              
         }
         printf("|\n");
     }
+    printf("\n");
 }
 
-void changeValue() {
-    
-}
-
-/*
-In order for a puzzle to be solved, 3 conditions must be satisfied:
-1. Numbers 1-9 must appear exactly once in each row
-2. Numbers 1-9 must appear exactly once in each column
-3. Numbers 1-9 must appear exactly once in each 3x3 box 
-*/
 bool isSudokuSolved(Puzzle puzzle) {
+    /*
+    In order for a puzzle to be solved, 3 conditions must be satisfied:
+    1. Numbers 1-9 must appear exactly once in each row
+    2. Numbers 1-9 must appear exactly once in each column
+    3. Numbers 1-9 must appear exactly once in each 3x3 box 
+    */
     bool solved = false;
         // Checks lines
         for (int i = 0; i < GRID_SIZE; ++i) { // for row
@@ -108,9 +120,9 @@ bool isSudokuSolved(Puzzle puzzle) {
     return true;
 }
 
-
 int main()
 {
+    // examples
     Puzzle exSolved = {{
         {3, 1, 6, 5, 7, 8, 4, 9, 2},
         {5, 2, 9, 1, 3, 4, 7, 6, 8},
@@ -121,6 +133,18 @@ int main()
         {1, 3, 8, 9, 4, 7, 2, 5, 6},
         {6, 9, 2, 3, 5, 1, 8, 7, 4},
         {7, 4, 5, 2, 8, 6, 3, 1, 9}
+        }};
+
+    Puzzle exWrong917 = {{ // 1,1 --> 7
+        {3, 1, 6, 5, 7, 8, 4, 9, 2},
+        {5, 2, 9, 1, 3, 4, 7, 6, 8},
+        {4, 8, 7, 6, 2, 9, 5, 3, 1},
+        {2, 6, 3, 4, 1, 5, 9, 8, 7},
+        {9, 7, 4, 8, 6, 3, 1, 2, 5},
+        {8, 5, 1, 7, 9, 2, 6, 4, 3}, 
+        {1, 3, 8, 9, 4, 7, 2, 5, 6},
+        {6, 9, 2, 3, 5, 1, 8, 7, 4},
+        {0, 4, 5, 2, 8, 6, 3, 1, 9}
         }};
     
     Puzzle exWrong1 = {{
@@ -148,12 +172,12 @@ int main()
         }};
 
     Puzzle exHas0 = {{
-        {3, 1, 6, 5, 7, 8, 4, 9, 2},
-        {5, 2, 9, 1, 3, 4, 7, 6, 8},
-        {4, 8, 0, 6, 2, 9, 5, 3, 1},
+        {3, 1, 0, 5, 7, 8, 4, 9, 2},
+        {5, 2, 9, 0, 3, 4, 7, 6, 8},
+        {4, 8, 0, 6, 2, 0, 5, 0, 1},
         {2, 6, 3, 4, 1, 5, 9, 8, 7},
         {9, 7, 4, 8, 6, 3, 0, 2, 5},
-        {8, 5, 1, 7, 9, 2, 6, 4, 3}, 
+        {8, 0, 0, 7, 9, 0, 6, 4, 3}, 
         {1, 3, 0, 9, 4, 7, 2, 5, 6},
         {6, 9, 2, 3, 5, 1, 8, 7, 4},
         {0, 0, 0, 0, 0, 0, 0, 0, 0}
@@ -163,8 +187,18 @@ int main()
     assert(isSudokuSolved(exWrong1) == false);
     assert(isSudokuSolved(exWrong1) == false);
     assert(isSudokuSolved(exHas0) == false);
+    assert(isSudokuSolved(exWrong917) == false);
+    generateBitmap(&exWrong917);
+    // outputPuzzle(exWrong917);
+    changeValue(&exWrong917, 1, 1, 7);
+    assert(isSudokuSolved(exWrong917) == true);
+    // outputPuzzle(exWrong917);
     generateBitmap(&exHas0);
-    outputGrid(exHas0.map);
+    outputPuzzle(exHas0);
+    changeValue(&exHas0, 2, 4, 9);
+    outputPuzzle(exHas0);
+    
+
 
     return 0;
 }

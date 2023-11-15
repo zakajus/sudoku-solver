@@ -4,9 +4,51 @@
 
 #define GRID_SIZE 9
 
-typedef struct Puzzle {
+typedef struct Puzzle 
+{
     int grid[GRID_SIZE][GRID_SIZE];
+    int map[GRID_SIZE][GRID_SIZE];
 } Puzzle;
+
+void generateBitmap(Puzzle *puzzle) {
+    int map[GRID_SIZE][GRID_SIZE];
+    for (int i = 0; i < GRID_SIZE; ++i) {
+        for (int j = 0; j < GRID_SIZE; ++j) {
+            if (puzzle->grid[i][j] > 0) {
+                puzzle->map[i][j] = 1;
+            }
+        }
+    }
+}
+
+Puzzle copyPuzzle(Puzzle puzzle, Puzzle *newPuzzle) {
+    Puzzle newPuzzle; 
+    for (int i = 0; i < GRID_SIZE; ++i) {
+        for (int j = 0; j < GRID_SIZE; ++j) {
+            newPuzzle->grid[i][j] = puzzle.grid[i][j];
+            newPuzzle->map[i][j] = puzzle.grid[i][j];
+        }
+    }
+}
+
+void outputGrid(int grid[GRID_SIZE][GRID_SIZE]) {
+    for (int i = 0; i < GRID_SIZE; ++i) {
+        if ((i % 3 == 0) && (i > 0)) {
+            printf("|-----------------------|\n");
+        }
+        for (int j = 0; j < GRID_SIZE; ++j) {
+            if (j % 3 == 0) {
+                printf("| ");
+            }
+            printf("%d ", grid[i][j]);
+        }
+        printf("|\n");
+    }
+}
+
+void changeValue() {
+    
+}
 
 /*
 In order for a puzzle to be solved, 3 conditions must be satisfied:
@@ -66,6 +108,7 @@ bool isSudokuSolved(Puzzle puzzle) {
     return true;
 }
 
+
 int main()
 {
     Puzzle exSolved = {{
@@ -107,11 +150,11 @@ int main()
     Puzzle exHas0 = {{
         {3, 1, 6, 5, 7, 8, 4, 9, 2},
         {5, 2, 9, 1, 3, 4, 7, 6, 8},
-        {4, 8, 7, 6, 2, 9, 5, 3, 1},
+        {4, 8, 0, 6, 2, 9, 5, 3, 1},
         {2, 6, 3, 4, 1, 5, 9, 8, 7},
-        {9, 7, 4, 8, 6, 3, 1, 2, 5},
+        {9, 7, 4, 8, 6, 3, 0, 2, 5},
         {8, 5, 1, 7, 9, 2, 6, 4, 3}, 
-        {1, 3, 8, 9, 4, 7, 2, 5, 6},
+        {1, 3, 0, 9, 4, 7, 2, 5, 6},
         {6, 9, 2, 3, 5, 1, 8, 7, 4},
         {0, 0, 0, 0, 0, 0, 0, 0, 0}
         }};
@@ -120,6 +163,8 @@ int main()
     assert(isSudokuSolved(exWrong1) == false);
     assert(isSudokuSolved(exWrong1) == false);
     assert(isSudokuSolved(exHas0) == false);
+    generateBitmap(&exHas0);
+    outputGrid(exHas0.map);
 
     return 0;
 }

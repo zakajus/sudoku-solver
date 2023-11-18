@@ -3,6 +3,8 @@
 #include <stdbool.h>
 
 #define GRID_SIZE 9
+#define LINE_MAX 60
+
 #define ANSI_COLOR_MAGENTA "\x1b[35m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
@@ -120,6 +122,13 @@ bool isSudokuSolved(Puzzle puzzle) {
     return true;
 }
 
+void displayMenu(char strArray[][LINE_MAX], int arrSize) {
+    for (int i = 0; i < arrSize; ++i) {
+        printf("%s", strArray[i]);
+    }
+    
+}
+
 int main()
 {
     // examples
@@ -197,8 +206,9 @@ int main()
     outputPuzzle(exHas0);
     changeValue(&exHas0, 2, 4, 9);
     outputPuzzle(exHas0);
-    
 
+    char menuOptions1[][LINE_MAX] = {"1. Play Sudoku\n", "2. Stats\n", "3. Quit\n", "Enter selection (1-3): "};
+    displayMenu(menuOptions1, 4);
 
     return 0;
 }

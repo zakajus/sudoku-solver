@@ -16,10 +16,12 @@
 // displayStrings
 char menuOptions_menuChange[][LINE_MAX] = {"q : Back\n", "x y value : change value at coordinate\n", "Enter selection: "};
 char menuOptions_choosePuzzle[][LINE_MAX] = {"q : Back\n", "x : Play x puzzle\n", "Enter selection: "};
+char menuOptions_mainMenu[][LINE_MAX] = {"q : Quit Sudoku\n", "1 : Play Sudoku\n", "2 : Sudoku solver\n", "3 : Stats\n", "4 : Reset saves\n" "Enter selection: "};
 
 typedef struct Puzzle {
     int grid[GRID_SIZE][GRID_SIZE];
     int map[GRID_SIZE][GRID_SIZE];
+    int id;
 } Puzzle;
 
 void clearDisplay() {
@@ -134,6 +136,17 @@ int isSudokuSolved(Puzzle puzzle) {
     return 1;
 }
 
+void resetSavedPuzzles(Puzzle **puzzleArray, Puzzle **savedPuzzles, int puzzleArrayCount) {
+    free(*savedPuzzles);
+    *savedPuzzles = malloc(puzzleArrayCount * sizeof(Puzzle));
+    if (*savedPuzzles == NULL) {
+        printf("Memory allocation failure\n");
+        exit(1);
+    }
+    memcpy(*savedPuzzles, *puzzleArray, puzzleArrayCount * sizeof(Puzzle));
+    printf("Puzzles reset successfully!\n\n");
+}
+
 void displayMenu(char strArray[][LINE_MAX], int arrSize) {
     for (int i = 0; i < arrSize; ++i) {
         printf("%s", strArray[i]);
@@ -181,8 +194,7 @@ void menuChoosePuzzle(Puzzle **puzzleArray, int puzzleCount) {
     char buffer[BUFFER_SIZE];
     int selection;
     char selectionChar;
-    while (1) {
-        
+    while (1) { 
         printf("%d puzzles loaded\n", puzzleCount);
         displayMenu(menuOptions_choosePuzzle, 3);
         fgets(buffer, BUFFER_SIZE, stdin);
@@ -214,6 +226,47 @@ void menuChoosePuzzle(Puzzle **puzzleArray, int puzzleCount) {
     
 }
 
+void menuMain(Puzzle **puzzleArray, Puzzle **savedPuzzles, int puzzleCount) {
+    clearDisplay();
+    char buffer[BUFFER_SIZE];
+    char selectionChar;
+    while (1) { 
+        displayMenu(menuOptions_mainMenu, 6);
+        fgets(buffer, BUFFER_SIZE, stdin);
+        if (sscanf(buffer, "%c", &selectionChar) == 1) {
+            switch (selectionChar) {
+                case '1':
+                    menuChoosePuzzle(puzzleArray, puzzleCount);
+                    clearDisplay();
+                    break;
+                case '2':
+                    clearDisplay();
+                    printf("Sudoku solver will be implemented in version 2.0\n\n");
+                    break;
+                case '3':
+                    clearDisplay();
+                    printf("Stats will be implemented in version 2.0\n\n");
+                    break;
+                case '4':
+                    clearDisplay();
+                    resetSavedPuzzles(puzzleArray, savedPuzzles, puzzleCount);
+                    break;
+                case 'q':
+                    clearDisplay();
+                    return;
+                default:
+                    clearDisplay();
+                    printf("Invalid input\n\n");
+            }
+        }
+        else {
+            clearDisplay();
+            printf("%s\n", buffer);
+            printf("Invalid input\n\n");
+        }
+    }
+}
+
 void addPuzzle(Puzzle puzzle, Puzzle **puzzleArray, int *puzzleCount) {
     *puzzleArray = realloc(*puzzleArray, (*puzzleCount + 1) * sizeof(Puzzle));
     if (*puzzleArray == NULL) {
@@ -224,7 +277,7 @@ void addPuzzle(Puzzle puzzle, Puzzle **puzzleArray, int *puzzleCount) {
     *puzzleCount = *puzzleCount + 1;
 }
 
-void removePuzzle(Puzzle **puzzleArray, int *puzzleCount) {
+void removeLastPuzzle(Puzzle **puzzleArray, int *puzzleCount) {
     if (*puzzleCount > 0) {
         *puzzleArray = realloc(*puzzleArray, (*puzzleCount - 1) * sizeof(Puzzle));
         if ((*puzzleCount - 1) > 0 && *puzzleArray == NULL) {
@@ -236,13 +289,36 @@ void removePuzzle(Puzzle **puzzleArray, int *puzzleCount) {
     else {
         printf("Cannot remove puzzle from empty list\n");
     }
-    
 }
 
+void removeNthPuzzle(Puzzle **puzzleArray, int *puzzleCount, int n) {
+    if (*puzzleCount > 0 && n >= 0 && n < *puzzleCount) {
+        for (int i = n; i < *puzzleCount - 1; i++) {
+            (*puzzleArray)[i] = (*puzzleArray)[i + 1];
+        }
+        *puzzleArray = realloc(*puzzleArray, (*puzzleCount - 1) * sizeof(Puzzle));
+        if ((*puzzleCount - 1) > 0 && *puzzleArray == NULL) {
+            printf("Memory allocation failure\n");
+            exit(1);
+        }
+        *puzzleCount = *puzzleCount - 1;
+    }
+    else {
+        printf("Cannot remove puzzle: invalid index\n");
+    }
+}
+
+
 int main() {
-    int puzzleCount = 0;
+    int currentID = 0; // add to read from file
+
+    int puzzleArrayCount = 0;
     Puzzle *puzzleArray = NULL;
-    Puzzle exWrong917 = {{ // 1,1 --> 7
+
+    int savedPuzzleCount = 0;
+    Puzzle *savedPuzzles = NULL;
+
+    Puzzle exWrong117 = {{ // 1,1 --> 7
         {3, 1, 6, 5, 7, 8, 4, 9, 2},
         {5, 2, 9, 1, 3, 4, 7, 6, 8},
         {4, 8, 7, 6, 2, 9, 5, 3, 1},
@@ -253,18 +329,27 @@ int main() {
         {6, 9, 2, 3, 5, 1, 8, 7, 4},
         {0, 4, 5, 2, 8, 6, 3, 1, 9}
         }};
+    Puzzle exWrong124 = {{ // 1,1 --> 7
+        {3, 1, 6, 5, 7, 8, 4, 9, 2},
+        {5, 2, 9, 1, 3, 4, 7, 6, 8},
+        {4, 8, 7, 6, 2, 9, 5, 3, 1},
+        {2, 6, 3, 4, 1, 5, 9, 8, 7},
+        {9, 7, 4, 8, 6, 3, 1, 2, 5},
+        {8, 5, 1, 7, 9, 2, 6, 4, 3}, 
+        {1, 3, 8, 9, 4, 7, 2, 5, 6},
+        {6, 9, 2, 3, 5, 1, 8, 7, 4},
+        {7, 0, 5, 2, 8, 6, 3, 1, 9}
+        }};
 
-    addPuzzle(exWrong917, &puzzleArray, &puzzleCount);
-    addPuzzle(exWrong917, &puzzleArray, &puzzleCount);
-    printf("%d\n", puzzleCount);
+    addPuzzle(exWrong117, &puzzleArray, &puzzleArrayCount);
+    addPuzzle(exWrong124, &puzzleArray, &puzzleArrayCount);
+    printf("%d\n", puzzleArrayCount);
     // displayPuzzle((puzzleArray)[0]);
     // removePuzzle(&puzzleArray, &puzzleCount);
-    printf("%d\n", puzzleCount);
-    menuChoosePuzzle(&puzzleArray, puzzleCount);
+    printf("%d\n", puzzleArrayCount);
+    menuMain(&puzzleArray, &savedPuzzles, puzzleArrayCount);
     // generateBitmap(&exWrong917);
     // menuChange((puzzleArray)[0]);
-    
-    // char menuOptions1[][LINE_MAX] = {"1. Play Sudoku\n", "2. Stats\n", "3. Quit\n", "Enter selection (1-3): "};
     // displayMenu(menuOptions1, 4);
 
     free(puzzleArray);

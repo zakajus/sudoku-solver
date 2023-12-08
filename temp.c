@@ -1,0 +1,14 @@
+assert(isSudokuSolved(exSolved) == true);
+assert(isSudokuSolved(exWrong1) == false);
+assert(isSudokuSolved(exWrong1) == false);
+assert(isSudokuSolved(exHas0) == false);
+assert(isSudokuSolved(exWrong917) == false);
+generateBitmap(&exWrong917);
+// outputPuzzle(exWrong917);
+changeValue(&exWrong917, 1, 1, 7);
+assert(isSudokuSolved(exWrong917) == true);
+// outputPuzzle(exWrong917);
+generateBitmap(&exHas0);
+outputPuzzle(exHas0);
+changeValue(&exHas0, 2, 4, 9);
+outputPuzzle(exHas0);

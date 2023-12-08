@@ -1,18 +1,28 @@
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
 #include <stdbool.h>
 
 #define GRID_SIZE 9
 #define LINE_MAX 60
+#define BUFFER_SIZE 64
 
 #define ANSI_COLOR_MAGENTA "\x1b[35m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
+#define ANSI_COLOR_GREEN   "\x1b[32m"
 
-typedef struct Puzzle 
-{
+// displayStrings
+char menuOptions_menuChange[][LINE_MAX] = {"q : Back\n", "x y value : change value at coordinate\n", "Enter selection: "};
+
+
+typedef struct Puzzle {
     int grid[GRID_SIZE][GRID_SIZE];
     int map[GRID_SIZE][GRID_SIZE];
 } Puzzle;
+
+void clearDisplay() {
+    printf("\033[H\033[J");
+}
 
 void generateBitmap(Puzzle *puzzle) {
     int map[GRID_SIZE][GRID_SIZE];
@@ -42,7 +52,7 @@ int changeValue(Puzzle *puzzle, int x, int y, int value) {
     return -1; 
 }
 
-void outputPuzzle(Puzzle puzzle) {
+void displayPuzzle(Puzzle puzzle) {
     for (int i = 0; i < GRID_SIZE; ++i) {
         if ((i % 3 == 0) && (i > 0)) {
             printf("|-----------------------|\n");
@@ -64,14 +74,14 @@ void outputPuzzle(Puzzle puzzle) {
     printf("\n");
 }
 
-bool isSudokuSolved(Puzzle puzzle) {
+int isSudokuSolved(Puzzle puzzle) {
     /*
     In order for a puzzle to be solved, 3 conditions must be satisfied:
     1. Numbers 1-9 must appear exactly once in each row
     2. Numbers 1-9 must appear exactly once in each column
     3. Numbers 1-9 must appear exactly once in each 3x3 box 
     */
-    bool solved = false;
+    bool solved = 0;
         // Checks lines
         for (int i = 0; i < GRID_SIZE; ++i) { // for row
             for (int num = 1; num <= GRID_SIZE; ++num) { // for numbers 1-9
@@ -82,7 +92,7 @@ bool isSudokuSolved(Puzzle puzzle) {
                     }
                 }
                 if (count != 1) {
-                    return false;
+                    return 0;
                 }
             }
         }
@@ -96,7 +106,7 @@ bool isSudokuSolved(Puzzle puzzle) {
                     } 
                 }
                 if (count != 1) {
-                    return false;
+                    return 0;
                 }
             }
         } 
@@ -113,13 +123,13 @@ bool isSudokuSolved(Puzzle puzzle) {
                         }
                     }
                     if (count != 1) {
-                        return false;
+                        return 0;
                     }
                 }
             }
         }
 
-    return true;
+    return 1;
 }
 
 void displayMenu(char strArray[][LINE_MAX], int arrSize) {
@@ -129,20 +139,62 @@ void displayMenu(char strArray[][LINE_MAX], int arrSize) {
     
 }
 
-int main()
-{
-    // examples
-    Puzzle exSolved = {{
-        {3, 1, 6, 5, 7, 8, 4, 9, 2},
-        {5, 2, 9, 1, 3, 4, 7, 6, 8},
-        {4, 8, 7, 6, 2, 9, 5, 3, 1},
-        {2, 6, 3, 4, 1, 5, 9, 8, 7},
-        {9, 7, 4, 8, 6, 3, 1, 2, 5},
-        {8, 5, 1, 7, 9, 2, 6, 4, 3}, 
-        {1, 3, 8, 9, 4, 7, 2, 5, 6},
-        {6, 9, 2, 3, 5, 1, 8, 7, 4},
-        {7, 4, 5, 2, 8, 6, 3, 1, 9}
-        }};
+void menuChange(Puzzle puzzle) {
+    char buffer[BUFFER_SIZE];
+    int x, y, val;
+    while (1) {
+        if (isSudokuSolved(puzzle)) {
+            printf(ANSI_COLOR_GREEN "This puzzle has been solved\n" ANSI_COLOR_RESET);
+        }
+        printf("\n");
+        displayPuzzle(puzzle);
+        displayMenu(menuOptions_menuChange, 3);
+        fgets(buffer, BUFFER_SIZE, stdin);
+        // scanf("%s", buffer);
+
+        if (sscanf(buffer, "%d %d %d", &x, &y, &val) == 3) {
+            if (changeValue(&puzzle, x, y, val) == -1) {
+                clearDisplay();
+                printf("Cannot change hint values!\n");
+            }
+            else {
+                clearDisplay();
+                printf("Value at (%i, %i) changed to %i successfully!\n", x, y, val);
+            }
+        }
+        else if (buffer[0] == 'q') {
+            break;
+        }
+        else {
+            clearDisplay();
+            // printf("%d %d %d\n", x, y, val);
+            printf("Invalid input!\n");
+        }
+    }
+}
+
+void playPuzzle(Puzzle puzzle, char menuOptions[][LINE_MAX], int menuSize) {
+    char choice;
+    int x, y, value;
+    while (true) {
+        clearDisplay();
+        displayMenu(menuOptions, menuSize);
+        printf("Enter your choice: ");
+        scanf("%c", &choice);
+        switch (choice) {
+            case 'q':
+                break;
+            case 1:
+                printf("Enter input (x y value): ");
+                scanf("%d %d %d", x, y, value);
+                changeValue(&puzzle, x, y, value);
+            default:
+                printf("Invalid choice. Please try again.\n");
+        }
+    }
+}
+
+int main() {
 
     Puzzle exWrong917 = {{ // 1,1 --> 7
         {3, 1, 6, 5, 7, 8, 4, 9, 2},
@@ -155,60 +207,14 @@ int main()
         {6, 9, 2, 3, 5, 1, 8, 7, 4},
         {0, 4, 5, 2, 8, 6, 3, 1, 9}
         }};
-    
-    Puzzle exWrong1 = {{
-        {3, 1, 6, 5, 7, 8, 4, 9, 2},
-        {5, 2, 9, 1, 3, 4, 7, 6, 8},
-        {4, 8, 7, 6, 2, 9, 5, 3, 1},
-        {2, 6, 3, 4, 1, 5, 5, 8, 7},
-        {9, 7, 4, 8, 6, 3, 1, 2, 5},
-        {8, 5, 1, 7, 9, 2, 6, 4, 3}, 
-        {1, 3, 8, 9, 4, 7, 2, 5, 6},
-        {6, 9, 2, 3, 5, 1, 8, 7, 4},
-        {7, 4, 5, 3, 8, 6, 3, 1, 9}
-        }};
 
-    Puzzle exWrong2 = {{
-        {3, 1, 6, 5, 7, 8, 4, 9, 9},
-        {5, 2, 9, 1, 3, 4, 7, 6, 8},
-        {4, 8, 7, 6, 2, 9, 5, 3, 1},
-        {2, 6, 3, 4, 1, 5, 9, 8, 7},
-        {9, 7, 4, 8, 6, 3, 1, 2, 5},
-        {8, 5, 1, 7, 9, 2, 6, 4, 3}, 
-        {1, 3, 8, 9, 4, 7, 2, 5, 6},
-        {6, 9, 2, 3, 5, 1, 8, 7, 4},
-        {7, 4, 1, 2, 8, 6, 3, 1, 9}
-        }};
-
-    Puzzle exHas0 = {{
-        {3, 1, 0, 5, 7, 8, 4, 9, 2},
-        {5, 2, 9, 0, 3, 4, 7, 6, 8},
-        {4, 8, 0, 6, 2, 0, 5, 0, 1},
-        {2, 6, 3, 4, 1, 5, 9, 8, 7},
-        {9, 7, 4, 8, 6, 3, 0, 2, 5},
-        {8, 0, 0, 7, 9, 0, 6, 4, 3}, 
-        {1, 3, 0, 9, 4, 7, 2, 5, 6},
-        {6, 9, 2, 3, 5, 1, 8, 7, 4},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0}
-        }};
-
-    assert(isSudokuSolved(exSolved) == true);
-    assert(isSudokuSolved(exWrong1) == false);
-    assert(isSudokuSolved(exWrong1) == false);
-    assert(isSudokuSolved(exHas0) == false);
-    assert(isSudokuSolved(exWrong917) == false);
     generateBitmap(&exWrong917);
-    // outputPuzzle(exWrong917);
-    changeValue(&exWrong917, 1, 1, 7);
-    assert(isSudokuSolved(exWrong917) == true);
-    // outputPuzzle(exWrong917);
-    generateBitmap(&exHas0);
-    outputPuzzle(exHas0);
-    changeValue(&exHas0, 2, 4, 9);
-    outputPuzzle(exHas0);
+    menuChange(exWrong917);
+    
+    // char menuOptions1[][LINE_MAX] = {"1. Play Sudoku\n", "2. Stats\n", "3. Quit\n", "Enter selection (1-3): "};
+    // displayMenu(menuOptions1, 4);
 
-    char menuOptions1[][LINE_MAX] = {"1. Play Sudoku\n", "2. Stats\n", "3. Quit\n", "Enter selection (1-3): "};
-    displayMenu(menuOptions1, 4);
+    
 
     return 0;
 }

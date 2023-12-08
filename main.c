@@ -3,6 +3,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdbool.h>
+#include <ctype.h>
 
 #define GRID_SIZE 9
 #define LINE_MAX 60
@@ -14,7 +15,7 @@
 
 // displayStrings
 char menuOptions_menuChange[][LINE_MAX] = {"q : Back\n", "x y value : change value at coordinate\n", "Enter selection: "};
-
+char menuOptions_choosePuzzle[][LINE_MAX] = {"q : Back\n", "x : Play x puzzle\n", "Enter selection: "};
 
 typedef struct Puzzle {
     int grid[GRID_SIZE][GRID_SIZE];
@@ -139,18 +140,20 @@ void displayMenu(char strArray[][LINE_MAX], int arrSize) {
     } 
 }
 
-void menuChange(Puzzle puzzle) {
+void menuPlay(Puzzle puzzle) {
+    clearDisplay();
     char buffer[BUFFER_SIZE];
     int x, y, val;
+    generateBitmap(&puzzle);
     while (1) {
+        
         if (isSudokuSolved(puzzle)) {
             printf(ANSI_COLOR_GREEN "This puzzle has been solved\n" ANSI_COLOR_RESET);
+            printf("\n");
         }
-        printf("\n");
         displayPuzzle(puzzle);
         displayMenu(menuOptions_menuChange, 3);
         fgets(buffer, BUFFER_SIZE, stdin);
-        // scanf("%s", buffer);
 
         if (sscanf(buffer, "%d %d %d", &x, &y, &val) == 3) {
             if (changeValue(&puzzle, x, y, val) == -1) {
@@ -163,16 +166,53 @@ void menuChange(Puzzle puzzle) {
             }
         }
         else if (buffer[0] == 'q') {
+            clearDisplay();
             break;
         }
         else {
             clearDisplay();
-            // printf("%d %d %d\n", x, y, val);
             printf("Invalid input!\n");
         }
     }
 }
 
+void menuChoosePuzzle(Puzzle **puzzleArray, int puzzleCount) {
+    clearDisplay();
+    char buffer[BUFFER_SIZE];
+    int selection;
+    char selectionChar;
+    while (1) {
+        
+        printf("%d puzzles loaded\n", puzzleCount);
+        displayMenu(menuOptions_choosePuzzle, 3);
+        fgets(buffer, BUFFER_SIZE, stdin);
+        if (sscanf(buffer, "%d", &selection) == 1) {
+            if (selection > 0 && selection <= puzzleCount) {
+                menuPlay((*puzzleArray)[selection-1]);
+            }
+            else {
+                clearDisplay();
+                printf("Puzzle does not exist\n\n");
+            }
+        }
+        else if (sscanf(buffer, "%c", &selectionChar) == 1) {
+            if (selectionChar == 'q') {
+                clearDisplay();
+                break;
+            }
+            else {
+                clearDisplay();
+                printf("Invalid input\n\n");
+            }
+        }
+        else {
+            clearDisplay();
+            printf("Invalid input\n\n");
+        }
+    }
+    
+    
+}
 
 void addPuzzle(Puzzle puzzle, Puzzle **puzzleArray, int *puzzleCount) {
     *puzzleArray = realloc(*puzzleArray, (*puzzleCount + 1) * sizeof(Puzzle));
@@ -200,7 +240,6 @@ void removePuzzle(Puzzle **puzzleArray, int *puzzleCount) {
 }
 
 int main() {
-    
     int puzzleCount = 0;
     Puzzle *puzzleArray = NULL;
     Puzzle exWrong917 = {{ // 1,1 --> 7
@@ -215,14 +254,15 @@ int main() {
         {0, 4, 5, 2, 8, 6, 3, 1, 9}
         }};
 
-    // addPuzzle(exWrong917, &puzzleArray, &puzzleCount);
-    // addPuzzle(exWrong917, &puzzleArray, &puzzleCount);
+    addPuzzle(exWrong917, &puzzleArray, &puzzleCount);
+    addPuzzle(exWrong917, &puzzleArray, &puzzleCount);
     printf("%d\n", puzzleCount);
     // displayPuzzle((puzzleArray)[0]);
-    removePuzzle(&puzzleArray, &puzzleCount);
+    // removePuzzle(&puzzleArray, &puzzleCount);
     printf("%d\n", puzzleCount);
+    menuChoosePuzzle(&puzzleArray, puzzleCount);
     // generateBitmap(&exWrong917);
-    // menuChange(exWrong917);
+    // menuChange((puzzleArray)[0]);
     
     // char menuOptions1[][LINE_MAX] = {"1. Play Sudoku\n", "2. Stats\n", "3. Quit\n", "Enter selection (1-3): "};
     // displayMenu(menuOptions1, 4);

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <stdbool.h>
@@ -135,8 +136,7 @@ int isSudokuSolved(Puzzle puzzle) {
 void displayMenu(char strArray[][LINE_MAX], int arrSize) {
     for (int i = 0; i < arrSize; ++i) {
         printf("%s", strArray[i]);
-    }
-    
+    } 
 }
 
 void menuChange(Puzzle puzzle) {
@@ -173,29 +173,36 @@ void menuChange(Puzzle puzzle) {
     }
 }
 
-void playPuzzle(Puzzle puzzle, char menuOptions[][LINE_MAX], int menuSize) {
-    char choice;
-    int x, y, value;
-    while (true) {
-        clearDisplay();
-        displayMenu(menuOptions, menuSize);
-        printf("Enter your choice: ");
-        scanf("%c", &choice);
-        switch (choice) {
-            case 'q':
-                break;
-            case 1:
-                printf("Enter input (x y value): ");
-                scanf("%d %d %d", x, y, value);
-                changeValue(&puzzle, x, y, value);
-            default:
-                printf("Invalid choice. Please try again.\n");
-        }
+
+void addPuzzle(Puzzle puzzle, Puzzle **puzzleArray, int *puzzleCount) {
+    *puzzleArray = realloc(*puzzleArray, (*puzzleCount + 1) * sizeof(Puzzle));
+    if (*puzzleArray == NULL) {
+        printf("Memory allocation failure\n");
+        exit(1);
     }
+    (*puzzleArray)[*puzzleCount] = puzzle;
+    *puzzleCount = *puzzleCount + 1;
+}
+
+void removePuzzle(Puzzle **puzzleArray, int *puzzleCount) {
+    if (*puzzleCount > 0) {
+        *puzzleArray = realloc(*puzzleArray, (*puzzleCount - 1) * sizeof(Puzzle));
+        if ((*puzzleCount - 1) > 0 && *puzzleArray == NULL) {
+            printf("Memory allocation failure\n");
+            exit(1);
+        }
+        *puzzleCount = *puzzleCount - 1;
+    }
+    else {
+        printf("Cannot remove puzzle from empty list\n");
+    }
+    
 }
 
 int main() {
-
+    
+    int puzzleCount = 0;
+    Puzzle *puzzleArray = NULL;
     Puzzle exWrong917 = {{ // 1,1 --> 7
         {3, 1, 6, 5, 7, 8, 4, 9, 2},
         {5, 2, 9, 1, 3, 4, 7, 6, 8},
@@ -208,13 +215,19 @@ int main() {
         {0, 4, 5, 2, 8, 6, 3, 1, 9}
         }};
 
-    generateBitmap(&exWrong917);
-    menuChange(exWrong917);
+    // addPuzzle(exWrong917, &puzzleArray, &puzzleCount);
+    // addPuzzle(exWrong917, &puzzleArray, &puzzleCount);
+    printf("%d\n", puzzleCount);
+    // displayPuzzle((puzzleArray)[0]);
+    removePuzzle(&puzzleArray, &puzzleCount);
+    printf("%d\n", puzzleCount);
+    // generateBitmap(&exWrong917);
+    // menuChange(exWrong917);
     
     // char menuOptions1[][LINE_MAX] = {"1. Play Sudoku\n", "2. Stats\n", "3. Quit\n", "Enter selection (1-3): "};
     // displayMenu(menuOptions1, 4);
 
-    
+    free(puzzleArray);
 
     return 0;
 }

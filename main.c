@@ -15,9 +15,9 @@
 #define ANSI_COLOR_RED     "\x1b[31m"
 
 // displayStrings
-char menuOptions_menuPlay[][LINE_MAX] = {"q : Back\n", "x y value : change value at coordinate\n", "r : Reset puzzle\n", "Enter selection: "};
-char menuOptions_choosePuzzle[][LINE_MAX] = {"q : Back\n", "x : Play x puzzle\n", "Enter selection: "};
-char menuOptions_mainMenu[][LINE_MAX] = {"q : Save and exit\n", "1 : Play Sudoku\n", "2 : Sudoku solver\n", "3 : Stats\n", "Enter selection: "};
+char menuOptions_menuPlay[][LINE_MAX] = {"q : Back\n", "x y value : change value at coordinate\n", "r : Reset puzzle\n\n", "Enter selection: "};
+char menuOptions_choosePuzzle[][LINE_MAX] = {"q : Back\n", "x : Play x puzzle\n\n", "Enter selection: "};
+char menuOptions_mainMenu[][LINE_MAX] = {"q : Save and exit\n", "1 : Play Sudoku\n", "2 : Sudoku solver\n", "3 : Stats\n\n", "Enter selection: "};
 
 typedef struct Puzzle {
     int grid[GRID_SIZE][GRID_SIZE];
@@ -265,6 +265,21 @@ void loadDataFromFile(Puzzle **puzzleArray, int *puzzleCount) {
     fclose(file);
 }
 
+void initDataIfNoBinary(Puzzle *puzzleArray, int puzzleCount) {
+    for (int i = 0; i < puzzleCount; ++i) {
+        generateUserGrid(&(puzzleArray[i]));
+        generateBitmap(&(puzzleArray[i]));
+    }
+    FILE *file = fopen("save.bin", "rb");
+    if (file == NULL) {
+        fclose(file);
+        saveDataToFile(puzzleArray, puzzleCount);
+    } 
+    else {
+        fclose(file);
+    }
+}
+
 void displayMenu(char strArray[][LINE_MAX], int arrSize) {
     for (int i = 0; i < arrSize; ++i) {
         printf("%s", strArray[i]);
@@ -323,6 +338,7 @@ void menuPlay(Puzzle *puzzle) {
 
 void menuChoosePuzzle(Puzzle **puzzleArray, int puzzleCount) {
     clearDisplay();
+    displayBanner();
     char buffer[BUFFER_SIZE];
     int selection;
     char selectionChar;
@@ -386,6 +402,7 @@ void menuMain(Puzzle **puzzleArray, int puzzleCount) {
                     break;
                 case 'q':
                     clearDisplay();
+                    saveDataToFile(*puzzleArray, puzzleCount);
                     return;
                 default:
                     clearDisplay();
@@ -399,10 +416,6 @@ void menuMain(Puzzle **puzzleArray, int puzzleCount) {
         }
     }
 }
-
-
-// TODO : Fix 
-
 
 int main() {
     int currentID = 0; // add to read from file
@@ -421,7 +434,7 @@ int main() {
         {6, 9, 2, 3, 5, 1, 8, 7, 4},
         {0, 4, 5, 2, 8, 6, 3, 1, 9}
         }};
-    Puzzle exWrong124 = {{ // 1,1 --> 7
+    Puzzle exWrong124 = {{ // 1,2 --> 4
         {3, 1, 6, 5, 7, 8, 4, 9, 2},
         {5, 2, 9, 1, 3, 4, 7, 6, 8},
         {4, 8, 7, 6, 2, 9, 5, 3, 1},
@@ -433,9 +446,14 @@ int main() {
         {7, 0, 5, 2, 8, 6, 3, 1, 9}
         }};
 
-    addPuzzle(exWrong117, &puzzleArray, &puzzleArrayCount);
-    addPuzzle(exWrong124, &puzzleArray, &puzzleArrayCount);
-    // displayPuzzle((savedPuzzles)[1]);
+    Puzzle defaultPuzzles[] = {exWrong117, exWrong124}; 
+
+    initDataIfNoBinary(defaultPuzzles, (sizeof(defaultPuzzles) / sizeof(defaultPuzzles[0])));
+    loadDataFromFile(&puzzleArray, &puzzleArrayCount);
+
+    // addPuzzle(exWrong117, &puzzleArray, &puzzleArrayCount);
+    // addPuzzle(exWrong124, &puzzleArray, &puzzleArrayCount);
+    // displayPuzzleUserGrid((puzzleArray)[1]);
     // printf("%d\n", sizeof(savedPuzzles));
     
 

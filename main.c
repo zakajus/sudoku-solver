@@ -16,8 +16,8 @@
 
 // displayStrings
 char menuOptions_menuPlay[][LINE_MAX] = {"q : Back\n", "x y value : change value at coordinate\n", "r : Reset puzzle\n\n", "Enter selection: "};
-char menuOptions_choosePuzzle[][LINE_MAX] = {"q : Back\n", "x : Play x puzzle\n\n", "Enter selection: "};
-char menuOptions_mainMenu[][LINE_MAX] = {"q : Save and exit\n", "1 : Play Sudoku\n", "2 : Sudoku solver\n", "3 : Stats\n\n", "Enter selection: "};
+char menuOptions_choosePuzzle[][LINE_MAX] = {"q : Back\n", "# : Play # puzzle\n\n", "Enter selection: "};
+char menuOptions_mainMenu[][LINE_MAX] = {"q : Save and exit\n", "1 : Play Sudoku\n", "2 : Sudoku solver\n", "3 : Stats\n", "r : Reset save data\n\n" "Enter selection: "};
 
 typedef struct Puzzle {
     int grid[GRID_SIZE][GRID_SIZE];
@@ -295,6 +295,9 @@ void menuPlay(Puzzle *puzzle) {
         
         if (isSudokuSolved(*puzzle)) {
             printf(ANSI_COLOR_GREEN "This puzzle has been solved\n" ANSI_COLOR_RESET);
+            if (firstLoop == 1) {
+                printf("\n");
+            }
         }
         if (firstLoop == 0) {
             printf("\n");
@@ -338,11 +341,11 @@ void menuPlay(Puzzle *puzzle) {
 
 void menuChoosePuzzle(Puzzle **puzzleArray, int puzzleCount) {
     clearDisplay();
-    displayBanner();
     char buffer[BUFFER_SIZE];
     int selection;
     char selectionChar;
     while (1) { 
+        displayBanner();
         printf("%d puzzles loaded\n\n", puzzleCount);
         displayMenu(menuOptions_choosePuzzle, 3);
         fgets(buffer, BUFFER_SIZE, stdin);
@@ -374,13 +377,13 @@ void menuChoosePuzzle(Puzzle **puzzleArray, int puzzleCount) {
     
 }
 
-void menuMain(Puzzle **puzzleArray, int puzzleCount) {
+void menuMain(Puzzle **puzzleArray, int puzzleCount, Puzzle *defaultPuzzles) {
     clearDisplay();
     char buffer[BUFFER_SIZE];
     char selectionChar;
     while (1) { 
         displayBanner();
-        displayMenu(menuOptions_mainMenu, 5);
+        displayMenu(menuOptions_mainMenu, 6);
         fgets(buffer, BUFFER_SIZE, stdin);
         if (sscanf(buffer, "%c", &selectionChar) == 1) {
             switch (selectionChar) {
@@ -396,9 +399,19 @@ void menuMain(Puzzle **puzzleArray, int puzzleCount) {
                     clearDisplay();
                     printf("Stats will be implemented in version 2.0\n\n");
                     break;
-                case '4':
+                case 'r':
                     clearDisplay();
-                    printf("Puzzles reset successfully!\n\n");
+                    if (remove("save.bin") == 0) {
+                        initDataIfNoBinary(defaultPuzzles, puzzleCount);
+                        loadDataFromFile(puzzleArray, &puzzleCount);
+                        clearDisplay();
+                        printf("Puzzles reset successfully!\n");
+                    } 
+                    else {
+                        clearDisplay();
+                        printf("Unable to reset data\n");
+                        exit(1);
+                    }
                     break;
                 case 'q':
                     clearDisplay();
@@ -419,11 +432,9 @@ void menuMain(Puzzle **puzzleArray, int puzzleCount) {
 
 int main() {
     int currentID = 0; // add to read from file
-
     int puzzleArrayCount = 0;
     Puzzle *puzzleArray = NULL;
-
-    Puzzle exWrong117 = {{ // 1,1 --> 7
+    Puzzle exWrong1 = {{ // 1,1 --> 7
         {3, 1, 6, 5, 7, 8, 4, 9, 2},
         {5, 2, 9, 1, 3, 4, 7, 6, 8},
         {4, 8, 7, 6, 2, 9, 5, 3, 1},
@@ -434,7 +445,7 @@ int main() {
         {6, 9, 2, 3, 5, 1, 8, 7, 4},
         {0, 4, 5, 2, 8, 6, 3, 1, 9}
         }};
-    Puzzle exWrong124 = {{ // 1,2 --> 4
+    Puzzle exWrong2 = {{ // 1,2 --> 4
         {3, 1, 6, 5, 7, 8, 4, 9, 2},
         {5, 2, 9, 1, 3, 4, 7, 6, 8},
         {4, 8, 7, 6, 2, 9, 5, 3, 1},
@@ -442,36 +453,37 @@ int main() {
         {9, 7, 4, 8, 6, 3, 1, 2, 5},
         {8, 5, 1, 7, 9, 2, 6, 4, 3}, 
         {1, 3, 8, 9, 4, 7, 2, 5, 6},
-        {6, 9, 2, 3, 5, 1, 8, 7, 4},
+        {6, 9, 0, 3, 5, 1, 8, 7, 4},
+        {7, 4, 5, 2, 8, 6, 3, 1, 9}
+        }};
+    Puzzle exWrong3 = {{
+        {3, 1, 6, 0, 7, 8, 4, 9, 2},
+        {5, 2, 9, 1, 3, 4, 0, 6, 8},
+        {4, 8, 0, 6, 2, 0, 5, 3, 1},
+        {0, 6, 3, 4, 1, 5, 9, 8, 7},
+        {9, 7, 4, 8, 0, 3, 0, 2, 5},
+        {8, 5, 1, 7, 9, 2, 6, 4, 0}, 
+        {1, 3, 0, 9, 4, 7, 2, 5, 6},
+        {6, 9, 2, 3, 5, 1, 8, 0, 4},
+        {7, 0, 5, 2, 8, 6, 3, 1, 9}
+        }};
+    Puzzle exWrong4 = {{
+        {3, 0, 6, 0, 7, 8, 4, 0, 2},
+        {5, 2, 9, 1, 3, 4, 0, 0, 8},
+        {4, 8, 0, 6, 2, 0, 5, 3, 1},
+        {0, 0, 3, 4, 1, 5, 9, 0, 7},
+        {9, 7, 4, 8, 0, 3, 0, 2, 5},
+        {8, 5, 1, 7, 9, 0, 6, 0, 0}, 
+        {1, 3, 0, 0, 4, 7, 2, 5, 6},
+        {6, 9, 2, 3, 5, 1, 8, 0, 4},
         {7, 0, 5, 2, 8, 6, 3, 1, 9}
         }};
 
-    Puzzle defaultPuzzles[] = {exWrong117, exWrong124}; 
+    Puzzle defaultPuzzles[] = {exWrong1, exWrong2, exWrong3, exWrong4}; 
 
     initDataIfNoBinary(defaultPuzzles, (sizeof(defaultPuzzles) / sizeof(defaultPuzzles[0])));
     loadDataFromFile(&puzzleArray, &puzzleArrayCount);
-
-    // addPuzzle(exWrong117, &puzzleArray, &puzzleArrayCount);
-    // addPuzzle(exWrong124, &puzzleArray, &puzzleArrayCount);
-    // displayPuzzleUserGrid((puzzleArray)[1]);
-    // printf("%d\n", sizeof(savedPuzzles));
-    
-
-    
-    // if (sizeof(savedPuzzles) == sizeof(NULL)) {
-        
-    // }
-
-    
-    // printf("%d\n", puzzleArrayCount);
-    
-    // removePuzzle(&puzzleArray, &puzzleCount);
-    // printf("%d\n", puzzleArrayCount);
-    menuMain(&puzzleArray, puzzleArrayCount);
-    // generateBitmap(&exWrong917);
-    // menuChange((puzzleArray)[0]);
-    // displayMenu(menuOptions1, 4);
-
+    menuMain(&puzzleArray, puzzleArrayCount, defaultPuzzles);
 
     free(puzzleArray);
 

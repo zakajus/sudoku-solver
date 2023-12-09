@@ -12,16 +12,17 @@
 #define ANSI_COLOR_MAGENTA "\x1b[35m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
+#define ANSI_COLOR_RED     "\x1b[31m"
 
 // displayStrings
-char menuOptions_menuChange[][LINE_MAX] = {"q : Back\n", "x y value : change value at coordinate\n", "Enter selection: "};
+char menuOptions_menuPlay[][LINE_MAX] = {"q : Back\n", "x y value : change value at coordinate\n", "r : Reset puzzle\n", "Enter selection: "};
 char menuOptions_choosePuzzle[][LINE_MAX] = {"q : Back\n", "x : Play x puzzle\n", "Enter selection: "};
-char menuOptions_mainMenu[][LINE_MAX] = {"q : Quit Sudoku\n", "1 : Play Sudoku\n", "2 : Sudoku solver\n", "3 : Stats\n", "4 : Reset saves\n" "Enter selection: "};
+char menuOptions_mainMenu[][LINE_MAX] = {"q : Save and exit\n", "1 : Play Sudoku\n", "2 : Sudoku solver\n", "3 : Stats\n", "Enter selection: "};
 
 typedef struct Puzzle {
     int grid[GRID_SIZE][GRID_SIZE];
+    int userGrid[GRID_SIZE][GRID_SIZE]; // Modified by user, can be reset
     int map[GRID_SIZE][GRID_SIZE];
-    int id;
 } Puzzle;
 
 void clearDisplay() {
@@ -39,6 +40,14 @@ void generateBitmap(Puzzle *puzzle) {
     }
 }
 
+void generateUserGrid(Puzzle *puzzle) {
+    for (int i = 0; i < GRID_SIZE; ++i) {
+        for (int j = 0; j < GRID_SIZE; ++j) {
+            puzzle->userGrid[i][j] = puzzle->grid[i][j];
+        }
+    }
+}
+
 void copyPuzzle(Puzzle puzzle, Puzzle *newPuzzle) {
     for (int i = 0; i < GRID_SIZE; ++i) {
         for (int j = 0; j < GRID_SIZE; ++j) {
@@ -50,13 +59,23 @@ void copyPuzzle(Puzzle puzzle, Puzzle *newPuzzle) {
 
 int changeValue(Puzzle *puzzle, int x, int y, int value) {
     if (puzzle->map[GRID_SIZE-y][x-1] == 0) {
-        puzzle->grid[GRID_SIZE-y][x-1] = value;
+        puzzle->userGrid[GRID_SIZE-y][x-1] = value;
         return 0;
     }
     return -1; 
 }
 
-void displayPuzzle(Puzzle puzzle) {
+void displayBanner() {
+printf("\
+  ___         _     _        \n \
+/ __|_  _ __| |___| |___  _ \n \
+\\__ \\ || / _` / _ \\ / / || |\n \
+|___/\\_,_\\__,_\\___/_\\_\\_,_|\n \
+-----------------------------\n\
+");
+}
+
+void displayPuzzleGrid(Puzzle puzzle) {
     for (int i = 0; i < GRID_SIZE; ++i) {
         if ((i % 3 == 0) && (i > 0)) {
             printf("|-----------------------|\n");
@@ -78,6 +97,28 @@ void displayPuzzle(Puzzle puzzle) {
     printf("\n");
 }
 
+void displayPuzzleUserGrid(Puzzle puzzle) {
+    for (int i = 0; i < GRID_SIZE; ++i) {
+        if ((i % 3 == 0) && (i > 0)) {
+            printf("|-----------------------|\n");
+        }
+        for (int j = 0; j < GRID_SIZE; ++j) {
+            if (j % 3 == 0) {
+                printf("| ");
+            }
+            if (puzzle.map[i][j] == 1){
+                printf(ANSI_COLOR_MAGENTA "%d " ANSI_COLOR_RESET, puzzle.userGrid[i][j]); 
+            }
+            else {
+                printf("%d ", puzzle.userGrid[i][j]); 
+            }
+              
+        }
+        printf("|\n");
+    }
+    printf("\n");
+}
+
 int isSudokuSolved(Puzzle puzzle) {
     /*
     In order for a puzzle to be solved, 3 conditions must be satisfied:
@@ -91,7 +132,7 @@ int isSudokuSolved(Puzzle puzzle) {
             for (int num = 1; num <= GRID_SIZE; ++num) { // for numbers 1-9
                 int count = 0;  
                 for (int j = 0; j < GRID_SIZE; ++j) { // for element
-                    if (puzzle.grid[i][j] == num) {
+                    if (puzzle.userGrid[i][j] == num) {
                         ++count;
                     }
                 }
@@ -105,7 +146,7 @@ int isSudokuSolved(Puzzle puzzle) {
             for (int num = 1; num <= GRID_SIZE; ++num) {
                 int count = 0;
                 for (int i = 0; i < GRID_SIZE; ++i) {
-                    if (puzzle.grid[i][j] == num) {
+                    if (puzzle.userGrid[i][j] == num) {
                         ++count;
                     } 
                 }
@@ -121,7 +162,7 @@ int isSudokuSolved(Puzzle puzzle) {
                     int count = 0;
                     for (int i = horzPadding; i < horzPadding+3; ++i) {
                         for (int j = vertPadding; j < vertPadding+3; ++j) {
-                            if (puzzle.grid[i][j] == num) {
+                            if (puzzle.userGrid[i][j] == num) {
                                 ++count;
                             }
                         }
@@ -136,143 +177,14 @@ int isSudokuSolved(Puzzle puzzle) {
     return 1;
 }
 
-void resetSavedPuzzles(Puzzle **puzzleArray, Puzzle **savedPuzzles, int puzzleArrayCount) {
-    free(*savedPuzzles);
-    *savedPuzzles = malloc(puzzleArrayCount * sizeof(Puzzle));
-    if (*savedPuzzles == NULL) {
-        printf("Memory allocation failure\n");
-        exit(1);
-    }
-    memcpy(*savedPuzzles, *puzzleArray, puzzleArrayCount * sizeof(Puzzle));
-    printf("Puzzles reset successfully!\n\n");
-}
-
-void displayMenu(char strArray[][LINE_MAX], int arrSize) {
-    for (int i = 0; i < arrSize; ++i) {
-        printf("%s", strArray[i]);
-    } 
-}
-
-void menuPlay(Puzzle puzzle) {
-    clearDisplay();
-    char buffer[BUFFER_SIZE];
-    int x, y, val;
-    generateBitmap(&puzzle);
-    while (1) {
-        
-        if (isSudokuSolved(puzzle)) {
-            printf(ANSI_COLOR_GREEN "This puzzle has been solved\n" ANSI_COLOR_RESET);
-            printf("\n");
-        }
-        displayPuzzle(puzzle);
-        displayMenu(menuOptions_menuChange, 3);
-        fgets(buffer, BUFFER_SIZE, stdin);
-
-        if (sscanf(buffer, "%d %d %d", &x, &y, &val) == 3) {
-            if (changeValue(&puzzle, x, y, val) == -1) {
-                clearDisplay();
-                printf("Cannot change hint values!\n");
-            }
-            else {
-                clearDisplay();
-                printf("Value at (%i, %i) changed to %i successfully!\n", x, y, val);
-            }
-        }
-        else if (buffer[0] == 'q') {
-            clearDisplay();
-            break;
-        }
-        else {
-            clearDisplay();
-            printf("Invalid input!\n");
-        }
-    }
-}
-
-void menuChoosePuzzle(Puzzle **puzzleArray, int puzzleCount) {
-    clearDisplay();
-    char buffer[BUFFER_SIZE];
-    int selection;
-    char selectionChar;
-    while (1) { 
-        printf("%d puzzles loaded\n", puzzleCount);
-        displayMenu(menuOptions_choosePuzzle, 3);
-        fgets(buffer, BUFFER_SIZE, stdin);
-        if (sscanf(buffer, "%d", &selection) == 1) {
-            if (selection > 0 && selection <= puzzleCount) {
-                menuPlay((*puzzleArray)[selection-1]);
-            }
-            else {
-                clearDisplay();
-                printf("Puzzle does not exist\n\n");
-            }
-        }
-        else if (sscanf(buffer, "%c", &selectionChar) == 1) {
-            if (selectionChar == 'q') {
-                clearDisplay();
-                break;
-            }
-            else {
-                clearDisplay();
-                printf("Invalid input\n\n");
-            }
-        }
-        else {
-            clearDisplay();
-            printf("Invalid input\n\n");
-        }
-    }
-    
-    
-}
-
-void menuMain(Puzzle **puzzleArray, Puzzle **savedPuzzles, int puzzleCount) {
-    clearDisplay();
-    char buffer[BUFFER_SIZE];
-    char selectionChar;
-    while (1) { 
-        displayMenu(menuOptions_mainMenu, 6);
-        fgets(buffer, BUFFER_SIZE, stdin);
-        if (sscanf(buffer, "%c", &selectionChar) == 1) {
-            switch (selectionChar) {
-                case '1':
-                    menuChoosePuzzle(puzzleArray, puzzleCount);
-                    clearDisplay();
-                    break;
-                case '2':
-                    clearDisplay();
-                    printf("Sudoku solver will be implemented in version 2.0\n\n");
-                    break;
-                case '3':
-                    clearDisplay();
-                    printf("Stats will be implemented in version 2.0\n\n");
-                    break;
-                case '4':
-                    clearDisplay();
-                    resetSavedPuzzles(puzzleArray, savedPuzzles, puzzleCount);
-                    break;
-                case 'q':
-                    clearDisplay();
-                    return;
-                default:
-                    clearDisplay();
-                    printf("Invalid input\n\n");
-            }
-        }
-        else {
-            clearDisplay();
-            printf("%s\n", buffer);
-            printf("Invalid input\n\n");
-        }
-    }
-}
-
 void addPuzzle(Puzzle puzzle, Puzzle **puzzleArray, int *puzzleCount) {
     *puzzleArray = realloc(*puzzleArray, (*puzzleCount + 1) * sizeof(Puzzle));
     if (*puzzleArray == NULL) {
         printf("Memory allocation failure\n");
         exit(1);
     }
+    generateBitmap(&puzzle);
+    generateUserGrid(&puzzle);
     (*puzzleArray)[*puzzleCount] = puzzle;
     *puzzleCount = *puzzleCount + 1;
 }
@@ -308,15 +220,195 @@ void removeNthPuzzle(Puzzle **puzzleArray, int *puzzleCount, int n) {
     }
 }
 
+void saveDataToFile(Puzzle *puzzleArray, int puzzleCount) {
+    FILE *file = fopen("save.bin", "wb");
+    if (file == NULL) {
+        printf("Failed to open save.bin\n");
+        exit(1);
+    }
+    if (fwrite(&puzzleCount, sizeof(puzzleCount), 1, file) != 1) {
+        printf("Failed to write puzzleCount to save.bin\n");
+        exit(1);
+    }
+    size_t itemsWritten = fwrite(puzzleArray, sizeof(Puzzle), puzzleCount, file);
+    if (itemsWritten != puzzleCount) {
+        printf("Failed to write puzzles to save.bin\n");
+        exit(1);
+    }
+    fclose(file);
+}
+
+void loadDataFromFile(Puzzle **puzzleArray, int *puzzleCount) {
+    FILE *file = fopen("save.bin", "rb");
+    if (file == NULL) {
+        printf("Failed to open save.bin\n");
+        exit(1);
+    }
+
+    if (fread(puzzleCount, sizeof(*puzzleCount), 1, file) != 1) {
+        printf("Failed to read puzzleCount from save.bin\n");
+        exit(1);
+    }
+
+    *puzzleArray = malloc(sizeof(Puzzle) * (*puzzleCount));
+    if (*puzzleArray == NULL) {
+        printf("Failed to allocate memory for puzzleArray\n");
+        exit(1);
+    }
+
+    size_t itemsRead = fread(*puzzleArray, sizeof(Puzzle), *puzzleCount, file);
+    if (itemsRead != *puzzleCount) {
+        printf("Failed to read puzzles from save.bin\n");
+        exit(1);
+    }
+
+    fclose(file);
+}
+
+void displayMenu(char strArray[][LINE_MAX], int arrSize) {
+    for (int i = 0; i < arrSize; ++i) {
+        printf("%s", strArray[i]);
+    } 
+}
+
+void menuPlay(Puzzle *puzzle) {
+    clearDisplay();
+    char buffer[BUFFER_SIZE];
+    int x, y, val;
+    int firstLoop = 1;
+    while (1) {
+        
+        if (isSudokuSolved(*puzzle)) {
+            printf(ANSI_COLOR_GREEN "This puzzle has been solved\n" ANSI_COLOR_RESET);
+        }
+        if (firstLoop == 0) {
+            printf("\n");
+        }
+        firstLoop = 0;
+        displayPuzzleUserGrid(*puzzle);
+        displayMenu(menuOptions_menuPlay, 4);
+        fgets(buffer, BUFFER_SIZE, stdin);
+
+        if (sscanf(buffer, "%d %d %d", &x, &y, &val) == 3) {
+            if (val > GRID_SIZE) {
+                clearDisplay();
+                printf("Values cannot be higher than %d!\n", GRID_SIZE);
+            }
+            else if (changeValue(puzzle, x, y, val) == -1) {
+                clearDisplay();
+                printf("Cannot change hint values!\n");
+            }
+            else {
+                clearDisplay();
+                printf("Value at (%i, %i) changed to %i successfully!\n", x, y, val);
+            }
+        }
+        else if (buffer[0] == 'r') {
+            generateUserGrid(puzzle);
+            clearDisplay();
+            printf(ANSI_COLOR_RED "Puzzle has been reset!\n" ANSI_COLOR_RESET);
+        }
+
+        else if (buffer[0] == 'q') {
+            clearDisplay();
+            break;
+        }
+        
+        else {
+            clearDisplay();
+            printf("Invalid input!\n");
+        }
+    }
+}
+
+void menuChoosePuzzle(Puzzle **puzzleArray, int puzzleCount) {
+    clearDisplay();
+    char buffer[BUFFER_SIZE];
+    int selection;
+    char selectionChar;
+    while (1) { 
+        printf("%d puzzles loaded\n\n", puzzleCount);
+        displayMenu(menuOptions_choosePuzzle, 3);
+        fgets(buffer, BUFFER_SIZE, stdin);
+        if (sscanf(buffer, "%d", &selection) == 1) {
+            if (selection > 0 && selection <= puzzleCount) {
+                menuPlay(&(*puzzleArray)[selection-1]);
+            }
+            else {
+                clearDisplay();
+                printf("Puzzle does not exist\n\n");
+            }
+        }
+        else if (sscanf(buffer, "%c", &selectionChar) == 1) {
+            if (selectionChar == 'q') {
+                clearDisplay();
+                break;
+            }
+            else {
+                clearDisplay();
+                printf("Invalid input\n\n");
+            }
+        }
+        else {
+            clearDisplay();
+            printf("Invalid input\n\n");
+        }
+    }
+    
+    
+}
+
+void menuMain(Puzzle **puzzleArray, int puzzleCount) {
+    clearDisplay();
+    char buffer[BUFFER_SIZE];
+    char selectionChar;
+    while (1) { 
+        displayBanner();
+        displayMenu(menuOptions_mainMenu, 5);
+        fgets(buffer, BUFFER_SIZE, stdin);
+        if (sscanf(buffer, "%c", &selectionChar) == 1) {
+            switch (selectionChar) {
+                case '1':
+                    menuChoosePuzzle(puzzleArray, puzzleCount);
+                    clearDisplay();
+                    break;
+                case '2':
+                    clearDisplay();
+                    printf("Sudoku solver will be implemented in version 2.0\n\n");
+                    break;
+                case '3':
+                    clearDisplay();
+                    printf("Stats will be implemented in version 2.0\n\n");
+                    break;
+                case '4':
+                    clearDisplay();
+                    printf("Puzzles reset successfully!\n\n");
+                    break;
+                case 'q':
+                    clearDisplay();
+                    return;
+                default:
+                    clearDisplay();
+                    printf("Invalid input\n\n");
+            }
+        }
+        else {
+            clearDisplay();
+            printf("%s\n", buffer);
+            printf("Invalid input\n\n");
+        }
+    }
+}
+
+
+// TODO : Fix 
+
 
 int main() {
     int currentID = 0; // add to read from file
 
     int puzzleArrayCount = 0;
     Puzzle *puzzleArray = NULL;
-
-    int savedPuzzleCount = 0;
-    Puzzle *savedPuzzles = NULL;
 
     Puzzle exWrong117 = {{ // 1,1 --> 7
         {3, 1, 6, 5, 7, 8, 4, 9, 2},
@@ -343,14 +435,25 @@ int main() {
 
     addPuzzle(exWrong117, &puzzleArray, &puzzleArrayCount);
     addPuzzle(exWrong124, &puzzleArray, &puzzleArrayCount);
-    printf("%d\n", puzzleArrayCount);
-    // displayPuzzle((puzzleArray)[0]);
+    // displayPuzzle((savedPuzzles)[1]);
+    // printf("%d\n", sizeof(savedPuzzles));
+    
+
+    
+    // if (sizeof(savedPuzzles) == sizeof(NULL)) {
+        
+    // }
+
+    
+    // printf("%d\n", puzzleArrayCount);
+    
     // removePuzzle(&puzzleArray, &puzzleCount);
-    printf("%d\n", puzzleArrayCount);
-    menuMain(&puzzleArray, &savedPuzzles, puzzleArrayCount);
+    // printf("%d\n", puzzleArrayCount);
+    menuMain(&puzzleArray, puzzleArrayCount);
     // generateBitmap(&exWrong917);
     // menuChange((puzzleArray)[0]);
     // displayMenu(menuOptions1, 4);
+
 
     free(puzzleArray);
 

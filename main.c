@@ -272,7 +272,6 @@ void initDataIfNoBinary(Puzzle *puzzleArray, int puzzleCount) {
     }
     FILE *file = fopen("save.bin", "rb");
     if (file == NULL) {
-        fclose(file);
         saveDataToFile(puzzleArray, puzzleCount);
     } 
     else {

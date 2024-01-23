@@ -1,3 +1,20 @@
+/*
+    TODO:
+    - Clean up and refactor code
+    - Log file
+    - Statistics
+    - Choose random unsolved puzzle
+    - Algorithmic solver
+        - Works with solvable puzzles
+        - Is able to detect if there are no solutions
+        - Can find all answers if n<17
+        - Optimization
+    - Unit tests
+    - Documentation
+    - Evaluate code based on criteria --> clean up and refactor
+    - Video
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,7 +23,7 @@
 #include <ctype.h>
 
 #define GRID_SIZE 9
-#define LINE_MAX 60
+#define LINE_MAX 80
 #define BUFFER_SIZE 64
 
 #define ANSI_COLOR_MAGENTA "\x1b[35m"
@@ -14,16 +31,68 @@
 #define ANSI_COLOR_GREEN   "\x1b[32m"
 #define ANSI_COLOR_RED     "\x1b[31m"
 
-// displayStrings
-char menuOptions_menuPlay[][LINE_MAX] = {"q : Back\n", "x y value : change value at coordinate\n", "r : Reset puzzle\n\n", "Enter selection: "};
-char menuOptions_choosePuzzle[][LINE_MAX] = {"q : Back\n", "# : Play # puzzle\n\n", "Enter selection: "};
-char menuOptions_mainMenu[][LINE_MAX] = {"q : Save and exit\n", "1 : Play Sudoku\n", "2 : Sudoku solver\n", "3 : Stats\n", "r : Reset save data\n\n" "Enter selection: "};
+typedef struct {
+    char* key;
+    char value[LINE_MAX];
+} translation; // key-value pair
+
+// ERROR --> strings for stderr
+translation dictionaryEN[] = {
+    {"MENU_SELECTION", "Enter selection: "},
+    {"INVALID_INPUT", "Invalid input"},
+
+    {"MENU_MAIN_OPTION_1", "1. Choose a puzzle to play"},
+    {"MENU_MAIN_OPTION_2", "2. Algorithmic solver"},
+    {"MENU_MAIN_OPTION_3", "3. Statistics"},
+    {"MENU_MAIN_OPTION_R", "r. Reset all puzzles"},
+    {"MENU_MAIN_OPTION_Q", "q. Quit the program"},
+    {"MENU_MAIN_RESET", "Puzzles reset successfully!"},
+
+    {"MENU_CHOOSEPUZZLE_OPTION_Q", "q : Back"},
+    {"MENU_CHOOSEPUZZLE_OPTION_N", "n : Play nth puzzle"},
+    {"MENU_CHOOSEPUZZLE_LOADED", "puzzles loaded"},
+    {"MENU_CHOOSEPUZZLE_MISSING", "Puzzle does not exist"},
+
+    {"MENU_PLAY_OPTION_Q", "q : Back"},
+    {"MENU_PLAY_OPTION_XY", "x y value : change value at (x,y)"},
+    {"MENU_PLAY_OPTION_R", "r : Reset puzzle"},
+    {"MENU_PLAY_SOLVED", "This puzzle has been solved"},
+    {"MENU_PLAY_VALUEHIGHER", "Values cannot be higher than"},
+    {"MENU_PLAY_VALUELOWER", "Values cannot be lower than"},
+    {"MENU_PLAY_HINTVALUE", "Cannot change hint values!"},
+    {"MENU_PLAY_VALUEAT", "Value at"},
+    {"MENU_PLAY_CHANGEDTO", "changed to"},
+    {"MENU_PLAY_SUCCESSFULLY", "successfully!"},
+    {"MENU_PLAY_RESET", "Puzzle has been reset!"},
+
+    {"ERROR_RESET_DATA", "Unable to reset data"},
+    {"ERROR_MEMORY_ALLOCATION", "Memory allocation failure"},
+    {"ERROR_OPEN_FILE", "Failed to open file"},
+    {"ERROR_WRITE_PUZZLECOUNT", "Failed to write puzzleCount to file"},
+    {"ERROR_WRITE_PUZZLES", "Failed to write puzzles to file"},
+    {"ERROR_READ_PUZZLECOUNT", "Failed to read puzzleCount from file"},
+    {"ERROR_READ_PUZZLES", "Failed to read puzzles from file"}
+};
+
+char* translate(char* key) {
+    int i;
+    for (i = 0; i < sizeof(dictionaryEN) / sizeof(translation); i++) {
+        if (strcmp(dictionaryEN[i].key, key) == 0) {
+            return dictionaryEN[i].value;
+        }
+    }
+    fprintf(stderr, "Dictionary value not found: %s\n", key);
+    exit(1);
+}
 
 typedef struct Puzzle {
     int grid[GRID_SIZE][GRID_SIZE];
     int userGrid[GRID_SIZE][GRID_SIZE]; // Modified by user, can be reset
     int map[GRID_SIZE][GRID_SIZE];
 } Puzzle;
+
+typedef Puzzle* PuzzleArray;
+
 
 void clearDisplay() {
     printf("\033[H\033[J");
@@ -65,6 +134,7 @@ int changeValue(Puzzle *puzzle, int x, int y, int value) {
     return -1; 
 }
 
+// Improper indentation is intentional!
 void displayBanner() {
 printf("\
   ___         _     _        \n \
@@ -180,7 +250,7 @@ int isSudokuSolved(Puzzle puzzle) {
 void addPuzzle(Puzzle puzzle, Puzzle **puzzleArray, int *puzzleCount) {
     *puzzleArray = realloc(*puzzleArray, (*puzzleCount + 1) * sizeof(Puzzle));
     if (*puzzleArray == NULL) {
-        printf("Memory allocation failure\n");
+        perror("Memory allocation failure");
         exit(1);
     }
     generateBitmap(&puzzle);
@@ -189,50 +259,50 @@ void addPuzzle(Puzzle puzzle, Puzzle **puzzleArray, int *puzzleCount) {
     *puzzleCount = *puzzleCount + 1;
 }
 
-void removeLastPuzzle(Puzzle **puzzleArray, int *puzzleCount) {
-    if (*puzzleCount > 0) {
-        *puzzleArray = realloc(*puzzleArray, (*puzzleCount - 1) * sizeof(Puzzle));
-        if ((*puzzleCount - 1) > 0 && *puzzleArray == NULL) {
-            printf("Memory allocation failure\n");
-            exit(1);
-        }
-        *puzzleCount = *puzzleCount - 1;
-    }
-    else {
-        printf("Cannot remove puzzle from empty list\n");
-    }
-}
+// void removeLastPuzzle(Puzzle **puzzleArray, int *puzzleCount) {
+//     if (*puzzleCount > 0) {
+//         *puzzleArray = realloc(*puzzleArray, (*puzzleCount - 1) * sizeof(Puzzle));
+//         if ((*puzzleCount - 1) > 0 && *puzzleArray == NULL) {
+//             printf("Memory allocation failure\n");
+//             exit(1);
+//         }
+//         *puzzleCount = *puzzleCount - 1;
+//     }
+//     else {
+//         printf("Cannot remove puzzle from empty list\n");
+//     }
+// }
 
-void removeNthPuzzle(Puzzle **puzzleArray, int *puzzleCount, int n) {
-    if (*puzzleCount > 0 && n >= 0 && n < *puzzleCount) {
-        for (int i = n; i < *puzzleCount - 1; i++) {
-            (*puzzleArray)[i] = (*puzzleArray)[i + 1];
-        }
-        *puzzleArray = realloc(*puzzleArray, (*puzzleCount - 1) * sizeof(Puzzle));
-        if ((*puzzleCount - 1) > 0 && *puzzleArray == NULL) {
-            printf("Memory allocation failure\n");
-            exit(1);
-        }
-        *puzzleCount = *puzzleCount - 1;
-    }
-    else {
-        printf("Cannot remove puzzle: invalid index\n");
-    }
-}
+// void removeNthPuzzle(Puzzle **puzzleArray, int *puzzleCount, int n) {
+//     if (*puzzleCount > 0 && n >= 0 && n < *puzzleCount) {
+//         for (int i = n; i < *puzzleCount - 1; i++) {
+//             (*puzzleArray)[i] = (*puzzleArray)[i + 1];
+//         }
+//         *puzzleArray = realloc(*puzzleArray, (*puzzleCount - 1) * sizeof(Puzzle));
+//         if ((*puzzleCount - 1) > 0 && *puzzleArray == NULL) {
+//             printf("%s\n", translate("ERROR_MEMORY_ALLOCATION"));
+//             exit(1);
+//         }
+//         *puzzleCount = *puzzleCount - 1;
+//     }
+//     else {
+//         printf("Cannot remove puzzle: invalid index\n");
+//     }
+// }
 
 void saveDataToFile(Puzzle *puzzleArray, int puzzleCount) {
     FILE *file = fopen("save.bin", "wb");
     if (file == NULL) {
-        printf("Failed to open save.bin\n");
+        fprintf(stderr, "%s", translate("ERROR_OPEN_FILE"));
         exit(1);
     }
     if (fwrite(&puzzleCount, sizeof(puzzleCount), 1, file) != 1) {
-        printf("Failed to write puzzleCount to save.bin\n");
+        fprintf(stderr, "%s", translate("ERROR_WRITE_PUZZLECOUNT"));
         exit(1);
     }
     size_t itemsWritten = fwrite(puzzleArray, sizeof(Puzzle), puzzleCount, file);
     if (itemsWritten != puzzleCount) {
-        printf("Failed to write puzzles to save.bin\n");
+        fprintf(stderr, "%s", translate("ERROR_WRITE_PUZZLES"));
         exit(1);
     }
     fclose(file);
@@ -241,24 +311,24 @@ void saveDataToFile(Puzzle *puzzleArray, int puzzleCount) {
 void loadDataFromFile(Puzzle **puzzleArray, int *puzzleCount) {
     FILE *file = fopen("save.bin", "rb");
     if (file == NULL) {
-        printf("Failed to open save.bin\n");
+        fprintf(stderr, "%s", translate("ERROR_OPEN_FILE"));
         exit(1);
     }
 
     if (fread(puzzleCount, sizeof(*puzzleCount), 1, file) != 1) {
-        printf("Failed to read puzzleCount from save.bin\n");
+        fprintf(stderr, "%s", translate("ERROR_READ_PUZZLECOUNT"));
         exit(1);
     }
 
     *puzzleArray = malloc(sizeof(Puzzle) * (*puzzleCount));
     if (*puzzleArray == NULL) {
-        printf("Failed to allocate memory for puzzleArray\n");
+        fprintf(stderr, "%s", translate("ERROR_MEMORY_ALLOCATION"));
         exit(1);
     }
 
     size_t itemsRead = fread(*puzzleArray, sizeof(Puzzle), *puzzleCount, file);
     if (itemsRead != *puzzleCount) {
-        printf("Failed to read puzzles from save.bin\n");
+        fprintf(stderr, "%s", translate("ERROR_READ_PUZZLES"));
         exit(1);
     }
 
@@ -279,6 +349,8 @@ void initDataIfNoBinary(Puzzle *puzzleArray, int puzzleCount) {
     }
 }
 
+
+
 void displayMenu(char strArray[][LINE_MAX], int arrSize) {
     for (int i = 0; i < arrSize; ++i) {
         printf("%s", strArray[i]);
@@ -291,9 +363,8 @@ void menuPlay(Puzzle *puzzle) {
     int x, y, val;
     int firstLoop = 1;
     while (1) {
-        
         if (isSudokuSolved(*puzzle)) {
-            printf(ANSI_COLOR_GREEN "This puzzle has been solved\n" ANSI_COLOR_RESET);
+            printf(ANSI_COLOR_GREEN "%s\n" ANSI_COLOR_RESET,  translate("MENU_PLAY_SOLVED"));
             if (firstLoop == 1) {
                 printf("\n");
             }
@@ -302,28 +373,39 @@ void menuPlay(Puzzle *puzzle) {
             printf("\n");
         }
         firstLoop = 0;
+
         displayPuzzleUserGrid(*puzzle);
-        displayMenu(menuOptions_menuPlay, 4);
+        printf("%s\n", translate("MENU_PLAY_OPTION_Q"));
+        printf("%s\n", translate("MENU_PLAY_OPTION_XY"));
+        printf("%s\n\n", translate("MENU_PLAY_OPTION_R"));
+        printf("%s", translate("MENU_SELECTION"));
         fgets(buffer, BUFFER_SIZE, stdin);
+        printf("%d\n", val);
 
         if (sscanf(buffer, "%d %d %d", &x, &y, &val) == 3) {
             if (val > GRID_SIZE) {
                 clearDisplay();
-                printf("Values cannot be higher than %d!\n", GRID_SIZE);
+                printf("%s %d!\n", translate("MENU_PLAY_VALUEHIGHER"),GRID_SIZE);
             }
+            else if (val < 0) {
+                clearDisplay();
+                printf("%s 0!\n", translate("MENU_PLAY_VALUELOWER"));
+            }
+            
             else if (changeValue(puzzle, x, y, val) == -1) {
                 clearDisplay();
-                printf("Cannot change hint values!\n");
+                printf("%s\n", translate("MENU_PLAY_HINTVALUE"));
             }
             else {
                 clearDisplay();
-                printf("Value at (%i, %i) changed to %i successfully!\n", x, y, val);
+                printf("%s (%i, %i) %s %i %s\n", translate("MENU_PLAY_VALUEAT"), \ 
+                x, y, translate("MENU_PLAY_CHANGEDTO"), val, translate("MENU_PLAY_SUCCESSFULLY"));
             }
         }
         else if (buffer[0] == 'r') {
             generateUserGrid(puzzle);
             clearDisplay();
-            printf(ANSI_COLOR_RED "Puzzle has been reset!\n" ANSI_COLOR_RESET);
+            printf(ANSI_COLOR_RED "%s\n" ANSI_COLOR_RESET, translate("MENU_PLAY_RESET"));
         }
 
         else if (buffer[0] == 'q') {
@@ -333,20 +415,22 @@ void menuPlay(Puzzle *puzzle) {
         
         else {
             clearDisplay();
-            printf("Invalid input!\n");
+            printf("%s\n", translate("INVALID_INPUT"));
         }
     }
 }
 
-void menuChoosePuzzle(Puzzle **puzzleArray, int puzzleCount) {
+void menuChoosePuzzle(PuzzleArray *puzzleArray, int puzzleCount) {
     clearDisplay();
     char buffer[BUFFER_SIZE];
     int selection;
     char selectionChar;
     while (1) { 
         displayBanner();
-        printf("%d puzzles loaded\n\n", puzzleCount);
-        displayMenu(menuOptions_choosePuzzle, 3);
+        printf("%d %s\n\n", puzzleCount, translate("MENU_CHOOSEPUZZLE_LOADED"));
+        printf("%s\n", translate("MENU_CHOOSEPUZZLE_OPTION_Q"));
+        printf("%s\n\n", translate("MENU_CHOOSEPUZZLE_OPTION_N"));
+        printf("%s", translate("MENU_SELECTION"));
         fgets(buffer, BUFFER_SIZE, stdin);
         if (sscanf(buffer, "%d", &selection) == 1) {
             if (selection > 0 && selection <= puzzleCount) {
@@ -354,7 +438,7 @@ void menuChoosePuzzle(Puzzle **puzzleArray, int puzzleCount) {
             }
             else {
                 clearDisplay();
-                printf("Puzzle does not exist\n\n");
+                printf("%s\n\n", translate("MENU_CHOOSEPUZZLE_MISSING"));
             }
         }
         else if (sscanf(buffer, "%c", &selectionChar) == 1) {
@@ -364,25 +448,30 @@ void menuChoosePuzzle(Puzzle **puzzleArray, int puzzleCount) {
             }
             else {
                 clearDisplay();
-                printf("Invalid input\n\n");
+                printf("%s\n", translate("INVALID_INPUT"));
             }
         }
         else {
             clearDisplay();
-            printf("Invalid input\n\n");
+            printf("%s\n", translate("INVALID_INPUT"));
         }
     }
     
     
 }
 
-void menuMain(Puzzle **puzzleArray, int puzzleCount, Puzzle *defaultPuzzles) {
+void menuMain(PuzzleArray *puzzleArray, int puzzleCount, Puzzle *defaultPuzzles) {
     clearDisplay();
     char buffer[BUFFER_SIZE];
     char selectionChar;
     while (1) { 
         displayBanner();
-        displayMenu(menuOptions_mainMenu, 6);
+        printf("%s\n", translate("MENU_MAIN_OPTION_1"));
+        printf("%s\n", translate("MENU_MAIN_OPTION_2"));
+        printf("%s\n", translate("MENU_MAIN_OPTION_3"));
+        printf("%s\n", translate("MENU_MAIN_OPTION_R"));
+        printf("%s\n\n", translate("MENU_MAIN_OPTION_Q"));
+        printf("%s", translate("MENU_SELECTION"));
         fgets(buffer, BUFFER_SIZE, stdin);
         if (sscanf(buffer, "%c", &selectionChar) == 1) {
             switch (selectionChar) {
@@ -404,11 +493,11 @@ void menuMain(Puzzle **puzzleArray, int puzzleCount, Puzzle *defaultPuzzles) {
                         initDataIfNoBinary(defaultPuzzles, puzzleCount);
                         loadDataFromFile(puzzleArray, &puzzleCount);
                         clearDisplay();
-                        printf("Puzzles reset successfully!\n");
+                        printf("%s\n", translate("MENU_MAIN_RESET"));
                     } 
                     else {
                         clearDisplay();
-                        printf("Unable to reset data\n");
+                        fprintf(stderr, "%s\n", translate("ERROR_RESET_DATA"));
                         exit(1);
                     }
                     break;
@@ -418,13 +507,12 @@ void menuMain(Puzzle **puzzleArray, int puzzleCount, Puzzle *defaultPuzzles) {
                     return;
                 default:
                     clearDisplay();
-                    printf("Invalid input\n\n");
+                    printf("%s\n", translate("INVALID_INPUT"));
             }
         }
         else {
             clearDisplay();
-            printf("%s\n", buffer);
-            printf("Invalid input\n\n");
+            printf("%s\n\n", translate("INVALID_INPUT"));
         }
     }
 }

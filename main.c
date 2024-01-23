@@ -1,6 +1,5 @@
 /*
     TODO:
-    - Clean up and refactor code
     - Log file
     - Statistics
     - Choose random unsolved puzzle
@@ -21,15 +20,23 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <time.h>
+
+#define BIN_SAVE_FILENAME "save.bin"
+#define LOG_FILENAME "log.txt"
 
 #define GRID_SIZE 9
 #define LINE_MAX 80
-#define BUFFER_SIZE 64
+#define BUFFER_SIZE 128
 
 #define ANSI_COLOR_MAGENTA "\x1b[35m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
 #define ANSI_COLOR_RED     "\x1b[31m"
+
+
+clock_t startTime;
+
 
 typedef struct {
     char* key;
@@ -93,6 +100,85 @@ typedef struct Puzzle {
 
 typedef Puzzle* PuzzleArray;
 
+long double findCurrentRuntime() {
+    clock_t endTime = clock();
+    long double cpuTime = ((long double) (endTime - startTime)) / CLOCKS_PER_SEC;
+    return cpuTime;
+}
+
+void logRuntime() {
+    long double cpuTime = findCurrentRuntime();
+
+    FILE *file = fopen(LOG_FILENAME, "a+");
+    if (file == NULL) {
+        printf("FAILED OPENING FILE\n");
+        return;
+    }
+    
+    fprintf(file, "Program CPU runtime: %Lf\n", cpuTime);
+    fclose(file);
+}
+
+void logLaunch() {
+    FILE *file = fopen(LOG_FILENAME, "a+");
+    if (file == NULL) {
+        printf("FAILED OPENING FILE\n");
+        return;
+    }
+
+    time_t now = time(NULL);
+    struct tm *t = localtime(&now);
+
+    char buf[BUFFER_SIZE];
+    strftime(buf, sizeof(buf), "%c", t);
+
+    fprintf(file, "Program launched at: %s\n", buf);
+    fclose(file);
+}
+
+long double readTotalRuntime() {
+    long double totalRuntime = 0.0, previousRuntime = 0.0;
+    char line[BUFFER_SIZE];
+
+    FILE *file = fopen(LOG_FILENAME, "r");
+    if (file == NULL) {
+        printf("Error opening file!\n");
+        return -1.0;
+    }
+
+    while (fgets(line, sizeof(line), file) != NULL) {
+        if (sscanf(line, "Program CPU runtime: %Lf\n", &previousRuntime) == 1) {
+            totalRuntime += previousRuntime;
+        }
+    }
+
+    totalRuntime += findCurrentRuntime();
+
+    fclose(file);
+
+    return totalRuntime;
+}
+
+int readLaunchCount() {
+    int launchCount = 0;
+    char line[BUFFER_SIZE];
+
+    FILE *file = fopen(LOG_FILENAME, "r");
+    if (file == NULL) {
+        printf("Error opening file!\n");
+        return -1;
+    }
+
+    while (fgets(line, sizeof(line), file) != NULL) {
+        if (strncmp(line, "Program launched at:", 20) == 0) {
+            launchCount++;
+        }
+    }
+
+    fclose(file);
+
+    return launchCount;
+}
 
 void clearDisplay() {
     printf("\033[H\033[J");
@@ -189,68 +275,69 @@ void displayPuzzleUserGrid(Puzzle puzzle) {
     printf("\n");
 }
 
-int isSudokuSolved(Puzzle puzzle) {
-    /*
-    In order for a puzzle to be solved, 3 conditions must be satisfied:
-    1. Numbers 1-9 must appear exactly once in each row
-    2. Numbers 1-9 must appear exactly once in each column
-    3. Numbers 1-9 must appear exactly once in each 3x3 box 
-    */
-    bool solved = 0;
-        // Checks lines
-        for (int i = 0; i < GRID_SIZE; ++i) { // for row
-            for (int num = 1; num <= GRID_SIZE; ++num) { // for numbers 1-9
-                int count = 0;  
-                for (int j = 0; j < GRID_SIZE; ++j) { // for element
-                    if (puzzle.userGrid[i][j] == num) {
-                        ++count;
-                    }
-                }
-                if (count != 1) {
-                    return 0;
+int checkRows(Puzzle puzzle) {
+    for (int i = 0; i < GRID_SIZE; ++i) {
+        for (int num = 1; num <= GRID_SIZE; ++num) {
+            int count = 0;
+            for (int j = 0; j < GRID_SIZE; ++j) {
+                if (puzzle.userGrid[i][j] == num) {
+                    ++count;
                 }
             }
+            if (count != 1) {
+                return 0;
+            }
         }
-        // Checks columns
-        for (int j = 0; j < GRID_SIZE; ++j) { 
+    }
+    return 1;
+}
+
+int checkColumns(Puzzle puzzle) {
+    for (int j = 0; j < GRID_SIZE; ++j) {
+        for (int num = 1; num <= GRID_SIZE; ++num) {
+            int count = 0;
+            for (int i = 0; i < GRID_SIZE; ++i) {
+                if (puzzle.userGrid[i][j] == num) {
+                    ++count;
+                }
+            }
+            if (count != 1) {
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
+int checkBoxes(Puzzle puzzle) {
+    for (int vertPadding = 0; vertPadding <= GRID_SIZE-3; vertPadding += 3) {
+        for (int horzPadding = 0; horzPadding <= GRID_SIZE-3; horzPadding += 3) {
             for (int num = 1; num <= GRID_SIZE; ++num) {
                 int count = 0;
-                for (int i = 0; i < GRID_SIZE; ++i) {
-                    if (puzzle.userGrid[i][j] == num) {
-                        ++count;
-                    } 
+                for (int i = horzPadding; i < horzPadding+3; ++i) {
+                    for (int j = vertPadding; j < vertPadding+3; ++j) {
+                        if (puzzle.userGrid[i][j] == num) {
+                            ++count;
+                        }
+                    }
                 }
                 if (count != 1) {
                     return 0;
                 }
             }
-        } 
-        // Checks grids
-        for (int vertPadding = 0; vertPadding <= GRID_SIZE-3; vertPadding += 3) {
-            for (int horzPadding = 0; horzPadding <= GRID_SIZE-3; horzPadding += 3) {
-                for (int num = 1; num <= GRID_SIZE; ++num) {
-                    int count = 0;
-                    for (int i = horzPadding; i < horzPadding+3; ++i) {
-                        for (int j = vertPadding; j < vertPadding+3; ++j) {
-                            if (puzzle.userGrid[i][j] == num) {
-                                ++count;
-                            }
-                        }
-                    }
-                    if (count != 1) {
-                        return 0;
-                    }
-                }
-            }
         }
-
+    }
     return 1;
+}
+
+int isSudokuSolved(Puzzle puzzle) {
+    return checkRows(puzzle) && checkColumns(puzzle) && checkBoxes(puzzle);
 }
 
 void addPuzzle(Puzzle puzzle, Puzzle **puzzleArray, int *puzzleCount) {
     *puzzleArray = realloc(*puzzleArray, (*puzzleCount + 1) * sizeof(Puzzle));
     if (*puzzleArray == NULL) {
-        perror("Memory allocation failure");
+        fprintf(stderr, "%s", translate("ERROR_MEMORY_ALLOCATION"));
         exit(1);
     }
     generateBitmap(&puzzle);
@@ -291,7 +378,7 @@ void addPuzzle(Puzzle puzzle, Puzzle **puzzleArray, int *puzzleCount) {
 // }
 
 void saveDataToFile(Puzzle *puzzleArray, int puzzleCount) {
-    FILE *file = fopen("save.bin", "wb");
+    FILE *file = fopen(BIN_SAVE_FILENAME, "wb");
     if (file == NULL) {
         fprintf(stderr, "%s", translate("ERROR_OPEN_FILE"));
         exit(1);
@@ -309,7 +396,7 @@ void saveDataToFile(Puzzle *puzzleArray, int puzzleCount) {
 }
 
 void loadDataFromFile(Puzzle **puzzleArray, int *puzzleCount) {
-    FILE *file = fopen("save.bin", "rb");
+    FILE *file = fopen(BIN_SAVE_FILENAME, "rb");
     if (file == NULL) {
         fprintf(stderr, "%s", translate("ERROR_OPEN_FILE"));
         exit(1);
@@ -340,7 +427,7 @@ void initDataIfNoBinary(Puzzle *puzzleArray, int puzzleCount) {
         generateUserGrid(&(puzzleArray[i]));
         generateBitmap(&(puzzleArray[i]));
     }
-    FILE *file = fopen("save.bin", "rb");
+    FILE *file = fopen(BIN_SAVE_FILENAME, "rb");
     if (file == NULL) {
         saveDataToFile(puzzleArray, puzzleCount);
     } 
@@ -369,6 +456,7 @@ void menuPlay(Puzzle *puzzle) {
                 printf("\n");
             }
         }
+        
         if (firstLoop == 0) {
             printf("\n");
         }
@@ -398,7 +486,7 @@ void menuPlay(Puzzle *puzzle) {
             }
             else {
                 clearDisplay();
-                printf("%s (%i, %i) %s %i %s\n", translate("MENU_PLAY_VALUEAT"), \ 
+                printf("%s (%i, %i) %s %i %s\n", translate("MENU_PLAY_VALUEAT"), \
                 x, y, translate("MENU_PLAY_CHANGEDTO"), val, translate("MENU_PLAY_SUCCESSFULLY"));
             }
         }
@@ -407,12 +495,10 @@ void menuPlay(Puzzle *puzzle) {
             clearDisplay();
             printf(ANSI_COLOR_RED "%s\n" ANSI_COLOR_RESET, translate("MENU_PLAY_RESET"));
         }
-
         else if (buffer[0] == 'q') {
             clearDisplay();
             break;
         }
-        
         else {
             clearDisplay();
             printf("%s\n", translate("INVALID_INPUT"));
@@ -431,7 +517,9 @@ void menuChoosePuzzle(PuzzleArray *puzzleArray, int puzzleCount) {
         printf("%s\n", translate("MENU_CHOOSEPUZZLE_OPTION_Q"));
         printf("%s\n\n", translate("MENU_CHOOSEPUZZLE_OPTION_N"));
         printf("%s", translate("MENU_SELECTION"));
+
         fgets(buffer, BUFFER_SIZE, stdin);
+
         if (sscanf(buffer, "%d", &selection) == 1) {
             if (selection > 0 && selection <= puzzleCount) {
                 menuPlay(&(*puzzleArray)[selection-1]);
@@ -464,6 +552,7 @@ void menuMain(PuzzleArray *puzzleArray, int puzzleCount, Puzzle *defaultPuzzles)
     clearDisplay();
     char buffer[BUFFER_SIZE];
     char selectionChar;
+
     while (1) { 
         displayBanner();
         printf("%s\n", translate("MENU_MAIN_OPTION_1"));
@@ -472,7 +561,9 @@ void menuMain(PuzzleArray *puzzleArray, int puzzleCount, Puzzle *defaultPuzzles)
         printf("%s\n", translate("MENU_MAIN_OPTION_R"));
         printf("%s\n\n", translate("MENU_MAIN_OPTION_Q"));
         printf("%s", translate("MENU_SELECTION"));
+
         fgets(buffer, BUFFER_SIZE, stdin);
+
         if (sscanf(buffer, "%c", &selectionChar) == 1) {
             switch (selectionChar) {
                 case '1':
@@ -489,7 +580,7 @@ void menuMain(PuzzleArray *puzzleArray, int puzzleCount, Puzzle *defaultPuzzles)
                     break;
                 case 'r':
                     clearDisplay();
-                    if (remove("save.bin") == 0) {
+                    if (remove(BIN_SAVE_FILENAME) == 0) {
                         initDataIfNoBinary(defaultPuzzles, puzzleCount);
                         loadDataFromFile(puzzleArray, &puzzleCount);
                         clearDisplay();
@@ -518,6 +609,10 @@ void menuMain(PuzzleArray *puzzleArray, int puzzleCount, Puzzle *defaultPuzzles)
 }
 
 int main() {
+    startTime = clock();
+    logLaunch();
+    atexit(logRuntime);
+
     int currentID = 0; // add to read from file
     int puzzleArrayCount = 0;
     Puzzle *puzzleArray = NULL;
@@ -573,6 +668,9 @@ int main() {
     menuMain(&puzzleArray, puzzleArrayCount, defaultPuzzles);
 
     free(puzzleArray);
+
+    printf("%Lf\n", readTotalRuntime());
+    printf("%d\n", readLaunchCount());
 
     return 0;
 }

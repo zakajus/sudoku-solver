@@ -1,9 +1,8 @@
 /*
     TODO:
-    - Choose random unsolved puzzle
     - Algorithmic solver
         - Works with solvable puzzles
-        - Is able to detect if there are no solutions
+        - Is able to detect if there are no solutions --> generate random sudokus to solve
         - Can find all answers if n<17
         - Optimization
     - Unit tests
@@ -60,8 +59,9 @@ translation dictionaryEN[] = {
     {"MENU_STATS_TOTALRUNTIME", "Total CPU runtime:"},
     {"MENU_STATS_OPTION_Q", "q : Exit statistics"},
 
-    {"MENU_CHOOSEPUZZLE_OPTION_Q", "q : Back"},
+    {"MENU_CHOOSEPUZZLE_OPTION_R", "r : Play random puzzle"},
     {"MENU_CHOOSEPUZZLE_OPTION_N", "n : Play nth puzzle"},
+    {"MENU_CHOOSEPUZZLE_OPTION_Q", "q : Back"},
     {"MENU_CHOOSEPUZZLE_LOADED", "puzzles loaded"},
     {"MENU_CHOOSEPUZZLE_MISSING", "Puzzle does not exist"},
 
@@ -529,8 +529,9 @@ void menuChoosePuzzle(PuzzleArray *puzzleArray, int puzzleCount) {
     while (1) { 
         displayBanner();
         printf("%d %s\n\n", puzzleCount, translate("MENU_CHOOSEPUZZLE_LOADED"));
-        printf("%s\n", translate("MENU_CHOOSEPUZZLE_OPTION_Q"));
-        printf("%s\n\n", translate("MENU_CHOOSEPUZZLE_OPTION_N"));
+        printf("%s\n", translate("MENU_CHOOSEPUZZLE_OPTION_R"));
+        printf("%s\n", translate("MENU_CHOOSEPUZZLE_OPTION_N"));
+        printf("%s\n\n", translate("MENU_CHOOSEPUZZLE_OPTION_Q"));
         printf("%s", translate("MENU_SELECTION"));
 
         fgets(buffer, BUFFER_SIZE, stdin);
@@ -545,7 +546,10 @@ void menuChoosePuzzle(PuzzleArray *puzzleArray, int puzzleCount) {
             }
         }
         else if (sscanf(buffer, "%c", &selectionChar) == 1) {
-            if (selectionChar == 'q') {
+            if (selectionChar == 'r') {
+                menuPlay(&(*puzzleArray)[rand()%puzzleCount]);
+            }
+            else if (selectionChar == 'q') {
                 clearDisplay();
                 break;
             }
@@ -664,6 +668,8 @@ int main() {
     startTime = clock();
     logLaunch();
     atexit(logRuntime);
+
+    srand(time(NULL));
 
     int currentID = 0; // add to read from file
     int puzzleArrayCount = 0;

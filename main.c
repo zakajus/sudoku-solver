@@ -1,7 +1,5 @@
 /*
     TODO:
-    - Log file
-    - Statistics
     - Choose random unsolved puzzle
     - Algorithmic solver
         - Works with solvable puzzles
@@ -21,6 +19,7 @@
 #include <stdbool.h>
 #include <ctype.h>
 #include <time.h>
+#include <math.h>
 
 #define BIN_SAVE_FILENAME "save.bin"
 #define LOG_FILENAME "log.txt"
@@ -48,12 +47,18 @@ translation dictionaryEN[] = {
     {"MENU_SELECTION", "Enter selection: "},
     {"INVALID_INPUT", "Invalid input"},
 
-    {"MENU_MAIN_OPTION_1", "1. Choose a puzzle to play"},
-    {"MENU_MAIN_OPTION_2", "2. Algorithmic solver"},
-    {"MENU_MAIN_OPTION_3", "3. Statistics"},
-    {"MENU_MAIN_OPTION_R", "r. Reset all puzzles"},
-    {"MENU_MAIN_OPTION_Q", "q. Quit the program"},
+    {"MENU_MAIN_OPTION_1", "1 : Choose a puzzle to play"},
+    {"MENU_MAIN_OPTION_2", "2 : Algorithmic solver"},
+    {"MENU_MAIN_OPTION_3", "3 : Statistics"},
+    {"MENU_MAIN_OPTION_R", "r : Reset all puzzles"},
+    {"MENU_MAIN_OPTION_Q", "q : Quit the program"},
     {"MENU_MAIN_RESET", "Puzzles reset successfully!"},
+
+    {"MENU_STATS_SOLVED", "Sudokus solved:"},
+    {"MENU_STATS_LAUNCHCOUNT", "Times this program was launched:"},
+    {"MENU_STATS_RUNTIME", "CPU runtime this launch:"},
+    {"MENU_STATS_TOTALRUNTIME", "Total CPU runtime:"},
+    {"MENU_STATS_OPTION_Q", "q : Exit statistics"},
 
     {"MENU_CHOOSEPUZZLE_OPTION_Q", "q : Back"},
     {"MENU_CHOOSEPUZZLE_OPTION_N", "n : Play nth puzzle"},
@@ -334,7 +339,17 @@ int isSudokuSolved(Puzzle puzzle) {
     return checkRows(puzzle) && checkColumns(puzzle) && checkBoxes(puzzle);
 }
 
-void addPuzzle(Puzzle puzzle, Puzzle **puzzleArray, int *puzzleCount) {
+int countSolvedSudokus(int puzzleArrayCount, PuzzleArray puzzleArray) {
+    int solvedCount = 0;
+    for (int i = 0; i < puzzleArrayCount; ++i) {
+        if (isSudokuSolved(puzzleArray[i]) == 1) {
+            ++solvedCount;
+        }
+    }
+    return solvedCount;
+}
+
+void addPuzzle(Puzzle puzzle, PuzzleArray *puzzleArray, int *puzzleCount) {
     *puzzleArray = realloc(*puzzleArray, (*puzzleCount + 1) * sizeof(Puzzle));
     if (*puzzleArray == NULL) {
         fprintf(stderr, "%s", translate("ERROR_MEMORY_ALLOCATION"));
@@ -395,7 +410,7 @@ void saveDataToFile(Puzzle *puzzleArray, int puzzleCount) {
     fclose(file);
 }
 
-void loadDataFromFile(Puzzle **puzzleArray, int *puzzleCount) {
+void loadDataFromFile(PuzzleArray *puzzleArray, int *puzzleCount) {
     FILE *file = fopen(BIN_SAVE_FILENAME, "rb");
     if (file == NULL) {
         fprintf(stderr, "%s", translate("ERROR_OPEN_FILE"));
@@ -548,6 +563,43 @@ void menuChoosePuzzle(PuzzleArray *puzzleArray, int puzzleCount) {
     
 }
 
+void menuStats(PuzzleArray *puzzleArray, int puzzleCount) {
+    clearDisplay();
+    char buffer[BUFFER_SIZE];
+    char selectionChar;
+
+    int solvedCount = countSolvedSudokus(puzzleCount, *puzzleArray);
+
+    while (1) { 
+        displayBanner();
+        
+        printf("%s %d/%d (%d%%)\n", translate("MENU_STATS_SOLVED"), solvedCount, puzzleCount, \
+        (int)((double)solvedCount/puzzleCount * 100));
+        printf("%s %d\n", translate("MENU_STATS_LAUNCHCOUNT"), readLaunchCount());
+        printf("%s %Lfs\n", translate("MENU_STATS_RUNTIME"), findCurrentRuntime());
+        printf("%s %Lfs\n\n", translate("MENU_STATS_TOTALRUNTIME"), readTotalRuntime());
+        printf("%s\n\n", translate("MENU_STATS_OPTION_Q"));
+        printf("%s", translate("MENU_SELECTION"));
+
+        fgets(buffer, BUFFER_SIZE, stdin);
+
+        if (sscanf(buffer, "%c", &selectionChar) == 1) {
+            switch (selectionChar) {
+                case 'q':
+                    clearDisplay();
+                    return;
+                default:
+                    clearDisplay();
+                    printf("%s\n", translate("INVALID_INPUT"));
+            }
+        }
+        else {
+            clearDisplay();
+            printf("%s\n\n", translate("INVALID_INPUT"));
+        }
+    }
+}
+
 void menuMain(PuzzleArray *puzzleArray, int puzzleCount, Puzzle *defaultPuzzles) {
     clearDisplay();
     char buffer[BUFFER_SIZE];
@@ -575,8 +627,8 @@ void menuMain(PuzzleArray *puzzleArray, int puzzleCount, Puzzle *defaultPuzzles)
                     printf("Sudoku solver will be implemented in version 2.0\n\n");
                     break;
                 case '3':
+                    menuStats(puzzleArray, puzzleCount);
                     clearDisplay();
-                    printf("Stats will be implemented in version 2.0\n\n");
                     break;
                 case 'r':
                     clearDisplay();
@@ -667,10 +719,12 @@ int main() {
     loadDataFromFile(&puzzleArray, &puzzleArrayCount);
     menuMain(&puzzleArray, puzzleArrayCount, defaultPuzzles);
 
+    // printf("%i\n", countSolvedSudokus(puzzleArrayCount, puzzleArray));
+
     free(puzzleArray);
 
-    printf("%Lf\n", readTotalRuntime());
-    printf("%d\n", readLaunchCount());
+    // printf("%Lf\n", readTotalRuntime());
+    // printf("%d\n", readLaunchCount());
 
     return 0;
 }

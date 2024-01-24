@@ -341,9 +341,57 @@ int checkBoxes(Puzzle puzzle) {
     return 1;
 }
 
+// int checkRow(Puzzle puzzle, int row) {
+//     for (int num = 1; num <= GRID_SIZE; ++num) {
+//         int count = 0;
+//         for (int j = 0; j < GRID_SIZE; ++j) {
+//             if (puzzle.userGrid[row][j] == num) {
+//                 ++count;
+//             }
+//         }
+//         if (count != 1) {
+//             return 0;
+//         }
+//     }
+//     return 1;
+// }
+
+// int checkColumn(Puzzle puzzle, int col) {
+//     for (int num = 1; num <= GRID_SIZE; ++num) {
+//         int count = 0;
+//         for (int i = 0; i < GRID_SIZE; ++i) {
+//             if (puzzle.userGrid[i][col] == num) {
+//                 ++count;
+//             }
+//         }
+//         if (count != 1) {
+//             return 0;
+//         }
+//     }
+//     return 1;
+// }
+
+// int checkBox(Puzzle puzzle, int startRow, int startCol) {
+//     for (int num = 1; num <= GRID_SIZE; ++num) {
+//         int count = 0;
+//         for (int i = startRow; i < startRow + 3; ++i) {
+//             for (int j = startCol; j < startCol + 3; ++j) {
+//                 if (puzzle.userGrid[i][j] == num) {
+//                     ++count;
+//                 }
+//             }
+//         }
+//         if (count != 1) {
+//             return 0;
+//         }
+//     }
+//     return 1;
+// }
+
 int isSudokuSolved(Puzzle puzzle) {
     return checkRows(puzzle) && checkColumns(puzzle) && checkBoxes(puzzle);
 }
+
 
 int countSolvedSudokus(int puzzleArrayCount, PuzzleArray puzzleArray) {
     int solvedCount = 0;
@@ -610,7 +658,7 @@ void menuStats(PuzzleArray *puzzleArray, int puzzleCount) {
     }
 }
 
-void menuManager(PuzzleArray *puzzleArrayPtr, int puzzleCount, PuzzleArray defaultPuzzleArray) {
+void menuManager(PuzzleArray *puzzleArrayPtr, int puzzleCount, PuzzleArray defaultPuzzleArray, int defaultPuzzleCount) {
     clearDisplay();
     char buffer[BUFFER_SIZE];
     char selectionChar;
@@ -631,7 +679,7 @@ void menuManager(PuzzleArray *puzzleArrayPtr, int puzzleCount, PuzzleArray defau
                 case '1':
                     clearDisplay();
                     if (remove(BIN_SAVE_FILENAME) == 0) {
-                        initDataIfNoBinary(defaultPuzzleArray, (sizeof(defaultPuzzleArray) / sizeof(defaultPuzzleArray[0])));
+                        initDataIfNoBinary(defaultPuzzleArray, defaultPuzzleCount);
                         loadDataFromFile(puzzleArrayPtr, &puzzleCount);
                         clearDisplay();
                         printf("%s\n", translate("MENU_MANAGER_RESET"));
@@ -669,7 +717,7 @@ void menuManager(PuzzleArray *puzzleArrayPtr, int puzzleCount, PuzzleArray defau
 
 }
 
-void menuMain(PuzzleArray *puzzleArray, int puzzleCount, PuzzleArray defaultPuzzles) {
+void menuMain(PuzzleArray *puzzleArray, int puzzleCount, PuzzleArray defaultPuzzles, int defaultPuzzleCount) {
     clearDisplay();
     char buffer[BUFFER_SIZE];
     char selectionChar;
@@ -696,7 +744,7 @@ void menuMain(PuzzleArray *puzzleArray, int puzzleCount, PuzzleArray defaultPuzz
                     printf("Sudoku solver will be implemented in version 2.0\n\n");
                     break;
                 case '3':
-                    menuManager(puzzleArray, puzzleCount, defaultPuzzles);
+                    menuManager(puzzleArray, puzzleCount, defaultPuzzles, defaultPuzzleCount);
                     clearDisplay();
                     break;
                 case '4':
@@ -775,10 +823,11 @@ int main() {
         }};
 
     Puzzle defaultPuzzles[] = {exWrong1, exWrong2, exWrong3, exWrong4}; 
+    int defaultPuzzleCount = (sizeof(defaultPuzzles) / sizeof(defaultPuzzles[0]));
 
-    initDataIfNoBinary(defaultPuzzles, (sizeof(defaultPuzzles) / sizeof(defaultPuzzles[0])));
+    initDataIfNoBinary(defaultPuzzles, defaultPuzzleCount);
     loadDataFromFile(&puzzleArray, &puzzleArrayCount);
-    menuMain(&puzzleArray, puzzleArrayCount, defaultPuzzles);
+    menuMain(&puzzleArray, puzzleArrayCount, defaultPuzzles, defaultPuzzleCount);
 
     // printf("%i\n", countSolvedSudokus(puzzleArrayCount, puzzleArray));
 

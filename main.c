@@ -56,8 +56,15 @@ translation dictionaryEN[] = {
     {"MENU_MANAGER_OPTION_2", "2 : Generate a new puzzle"},
     {"MENU_MANAGER_OPTION_3", "3 : Delete a puzzle"},
     {"MENU_MANAGER_OPTION_Q", "q : Back"},
-    {"MENU_MANAGER_NOTE", "* Also deletes all generated puzzles!"},
+    {"MENU_MANAGER_NOTE", "* Deletes solutions, resets to default puzzles"},
     {"MENU_MANAGER_RESET", "Puzzles reset successfully!"},
+
+    {"MENU_DELETE_LOADED", "puzzles have been loaded"},
+    {"MENU_DELETE_OPTION_N", "n : Delete nth puzzle"},
+    {"MENU_DELETE_OPTION_Q", "q : Back"},
+    {"MENU_DELETE_MISSING", "Puzzle does not exist"},
+    {"MENU_DELETE_PUZZLE", "Puzzle"},
+    {"MENU_DELETE_DELETED", "deleted successfully!"},
 
     {"MENU_SOLVER_LOADED", "puzzles have been loaded"},
     {"MENU_SOLVER_OPTION_N", "n : Solve nth puzzle"},
@@ -499,7 +506,7 @@ void addPuzzle(Puzzle puzzle, PuzzleArray *puzzleArray, int *puzzleCount) {
 //     }
 // }
 
-void removeNthPuzzle(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr, int n) {
+void deleteNthPuzzle(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr, int n) {
     if (*puzzleCountPtr > 0 && n >= 0 && n < *puzzleCountPtr) {
         for (int i = n; i < *puzzleCountPtr - 1; ++i) {
             (*puzzleArrayPtr)[i] = (*puzzleArrayPtr)[i + 1];
@@ -574,8 +581,6 @@ void initDataIfNoBinary(Puzzle *puzzleArray, int puzzleCount) {
         fclose(file);
     }
 }
-
-
 
 void displayMenu(char strArray[][LINE_MAX], int arrSize) {
     for (int i = 0; i < arrSize; ++i) {
@@ -691,6 +696,49 @@ void menuChoosePuzzle(PuzzleArray *puzzleArray, int puzzleCount) {
     
 }
 
+void menuDelete(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr) {
+    clearDisplay();
+    char buffer[BUFFER_SIZE];
+    int selection;
+    char selectionChar;
+    while (1) { 
+        displayBanner();
+        printf("%d %s\n\n", *puzzleCountPtr, translate("MENU_DELETE_LOADED"));
+        printf("%s\n", translate("MENU_DELETE_OPTION_N"));
+        printf("%s\n\n", translate("MENU_DELETE_OPTION_Q"));
+        printf("%s", translate("MENU_SELECTION"));
+
+        fgets(buffer, BUFFER_SIZE, stdin);
+
+        if (sscanf(buffer, "%d", &selection) == 1) {
+            if (selection > 0 && selection <= *puzzleCountPtr) {
+                deleteNthPuzzle(puzzleArrayPtr, puzzleCountPtr, (selection-1));
+                clearDisplay();
+                printf(ANSI_COLOR_GREEN "%s %d %s\n\n" ANSI_COLOR_RESET, translate("MENU_DELETE_PUZZLE"), \
+                selection, translate("MENU_DELETE_DELETED"));
+            }
+            else {
+                clearDisplay();
+                printf("%s\n\n", translate("MENU_DELETE_MISSING"));
+            }
+        }
+        else if (sscanf(buffer, "%c", &selectionChar) == 1) {
+            if (selectionChar == 'q') {
+                clearDisplay();
+                break;
+            }
+            else {
+                clearDisplay();
+                printf("%s\n", translate("INVALID_INPUT"));
+            }
+        }
+        else {
+            clearDisplay();
+            printf("%s\n", translate("INVALID_INPUT"));
+        }
+    }
+}
+
 void menuSolver(PuzzleArray *puzzleArrayPtr, int puzzleCount) {
     clearDisplay();
     char buffer[BUFFER_SIZE];
@@ -713,7 +761,7 @@ void menuSolver(PuzzleArray *puzzleArrayPtr, int puzzleCount) {
             }
             else {
                 clearDisplay();
-                printf("%s\n\n", translate("MENU_CHOOSEPUZZLE_MISSING"));
+                printf("%s\n\n", translate("MENU_SOLVER_MISSING"));
             }
         }
         else if (sscanf(buffer, "%c", &selectionChar) == 1) {
@@ -770,7 +818,7 @@ void menuStats(PuzzleArray *puzzleArray, int puzzleCount) {
     }
 }
 
-void menuManager(PuzzleArray *puzzleArrayPtr, int puzzleCount, PuzzleArray defaultPuzzleArray, int defaultPuzzleCount) {
+void menuManager(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr, PuzzleArray defaultPuzzleArray, int defaultPuzzleCount) {
     clearDisplay();
     char buffer[BUFFER_SIZE];
     char selectionChar;
@@ -792,7 +840,7 @@ void menuManager(PuzzleArray *puzzleArrayPtr, int puzzleCount, PuzzleArray defau
                     clearDisplay();
                     if (remove(BIN_SAVE_FILENAME) == 0) {
                         initDataIfNoBinary(defaultPuzzleArray, defaultPuzzleCount);
-                        loadDataFromFile(puzzleArrayPtr, &puzzleCount);
+                        loadDataFromFile(puzzleArrayPtr, puzzleCountPtr);
                         clearDisplay();
                         printf("%s\n", translate("MENU_MANAGER_RESET"));
                     } 
@@ -807,6 +855,7 @@ void menuManager(PuzzleArray *puzzleArrayPtr, int puzzleCount, PuzzleArray defau
                     break;
                 case '3':
                     clearDisplay();
+                    menuDelete(puzzleArrayPtr, puzzleCountPtr);
                     break;
                 case '4':
                     // menuStats(puzzleArray, puzzleCount);
@@ -828,7 +877,7 @@ void menuManager(PuzzleArray *puzzleArrayPtr, int puzzleCount, PuzzleArray defau
 
 }
 
-void menuMain(PuzzleArray *puzzleArray, int puzzleCount, PuzzleArray defaultPuzzles, int defaultPuzzleCount) {
+void menuMain(PuzzleArray *puzzleArray, int *puzzleCountPtr, PuzzleArray defaultPuzzles, int defaultPuzzleCount) {
     clearDisplay();
     char buffer[BUFFER_SIZE];
     char selectionChar;
@@ -847,24 +896,24 @@ void menuMain(PuzzleArray *puzzleArray, int puzzleCount, PuzzleArray defaultPuzz
         if (sscanf(buffer, "%c", &selectionChar) == 1) {
             switch (selectionChar) {
                 case '1':
-                    menuChoosePuzzle(puzzleArray, puzzleCount);
+                    menuChoosePuzzle(puzzleArray, *puzzleCountPtr);
                     clearDisplay();
                     break;
                 case '2':
                     clearDisplay();
-                    menuSolver(puzzleArray, puzzleCount);
+                    menuSolver(puzzleArray, *puzzleCountPtr);
                     break;
                 case '3':
-                    menuManager(puzzleArray, puzzleCount, defaultPuzzles, defaultPuzzleCount);
+                    menuManager(puzzleArray, puzzleCountPtr, defaultPuzzles, defaultPuzzleCount);
                     clearDisplay();
                     break;
                 case '4':
-                    menuStats(puzzleArray, puzzleCount);
+                    menuStats(puzzleArray, *puzzleCountPtr);
                     clearDisplay();
                     break;
                 case 'q':
                     clearDisplay(); 
-                    saveDataToFile(*puzzleArray, puzzleCount);
+                    saveDataToFile(*puzzleArray, *puzzleCountPtr);
                     return;
                 default:
                     clearDisplay();
@@ -938,7 +987,7 @@ int main() {
 
     initDataIfNoBinary(defaultPuzzles, defaultPuzzleCount);
     loadDataFromFile(&puzzleArray, &puzzleArrayCount);
-    menuMain(&puzzleArray, puzzleArrayCount, defaultPuzzles, defaultPuzzleCount);
+    menuMain(&puzzleArray, &puzzleArrayCount, defaultPuzzles, defaultPuzzleCount);
 
     // printf("%i\n", countSolvedSudokus(puzzleArrayCount, puzzleArray));
 

@@ -59,6 +59,12 @@ translation dictionaryEN[] = {
     {"MENU_MANAGER_NOTE", "* Also deletes all generated puzzles!"},
     {"MENU_MANAGER_RESET", "Puzzles reset successfully!"},
 
+    {"MENU_SOLVER_LOADED", "puzzles have been loaded"},
+    {"MENU_SOLVER_OPTION_N", "n : Solve nth puzzle"},
+    {"MENU_SOLVER_OPTION_Q", "q : Back"},
+    {"MENU_SOLVER_MISSING", "Puzzle does not exist"},
+    {"MENU_SOLVER_SUCCESS", "Puzzle solved successfully!"},
+
     {"MENU_STATS_SOLVED", "Sudokus solved:"},
     {"MENU_STATS_LAUNCHCOUNT", "Times this program was launched:"},
     {"MENU_STATS_RUNTIME", "CPU runtime this launch:"},
@@ -231,7 +237,7 @@ int changeValue(Puzzle *puzzle, int x, int y, int value) {
     return -1; 
 }
 
-// Improper indentation is intentional!
+// improper indentation is intentional!
 void displayBanner() {
 printf("\
   ___         _     _        \n \
@@ -286,110 +292,174 @@ void displayPuzzleUserGrid(Puzzle puzzle) {
     printf("\n");
 }
 
-int checkRows(Puzzle puzzle) {
-    for (int i = 0; i < GRID_SIZE; ++i) {
-        for (int num = 1; num <= GRID_SIZE; ++num) {
-            int count = 0;
-            for (int j = 0; j < GRID_SIZE; ++j) {
-                if (puzzle.userGrid[i][j] == num) {
-                    ++count;
-                }
-            }
-            if (count != 1) {
-                return 0;
-            }
-        }
-    }
-    return 1;
-}
-
-int checkColumns(Puzzle puzzle) {
-    for (int j = 0; j < GRID_SIZE; ++j) {
-        for (int num = 1; num <= GRID_SIZE; ++num) {
-            int count = 0;
-            for (int i = 0; i < GRID_SIZE; ++i) {
-                if (puzzle.userGrid[i][j] == num) {
-                    ++count;
-                }
-            }
-            if (count != 1) {
-                return 0;
-            }
-        }
-    }
-    return 1;
-}
-
-int checkBoxes(Puzzle puzzle) {
-    for (int vertPadding = 0; vertPadding <= GRID_SIZE-3; vertPadding += 3) {
-        for (int horzPadding = 0; horzPadding <= GRID_SIZE-3; horzPadding += 3) {
-            for (int num = 1; num <= GRID_SIZE; ++num) {
-                int count = 0;
-                for (int i = horzPadding; i < horzPadding+3; ++i) {
-                    for (int j = vertPadding; j < vertPadding+3; ++j) {
-                        if (puzzle.userGrid[i][j] == num) {
-                            ++count;
-                        }
-                    }
-                }
-                if (count != 1) {
-                    return 0;
-                }
-            }
-        }
-    }
-    return 1;
-}
-
-// int checkRow(Puzzle puzzle, int row) {
-//     for (int num = 1; num <= GRID_SIZE; ++num) {
-//         int count = 0;
-//         for (int j = 0; j < GRID_SIZE; ++j) {
-//             if (puzzle.userGrid[row][j] == num) {
-//                 ++count;
-//             }
-//         }
-//         if (count != 1) {
-//             return 0;
-//         }
-//     }
-//     return 1;
-// }
-
-// int checkColumn(Puzzle puzzle, int col) {
-//     for (int num = 1; num <= GRID_SIZE; ++num) {
-//         int count = 0;
-//         for (int i = 0; i < GRID_SIZE; ++i) {
-//             if (puzzle.userGrid[i][col] == num) {
-//                 ++count;
-//             }
-//         }
-//         if (count != 1) {
-//             return 0;
-//         }
-//     }
-//     return 1;
-// }
-
-// int checkBox(Puzzle puzzle, int startRow, int startCol) {
-//     for (int num = 1; num <= GRID_SIZE; ++num) {
-//         int count = 0;
-//         for (int i = startRow; i < startRow + 3; ++i) {
-//             for (int j = startCol; j < startCol + 3; ++j) {
+// int checkRows(Puzzle puzzle) {
+//     for (int i = 0; i < GRID_SIZE; ++i) {
+//         for (int num = 1; num <= GRID_SIZE; ++num) {
+//             int count = 0;
+//             for (int j = 0; j < GRID_SIZE; ++j) {
 //                 if (puzzle.userGrid[i][j] == num) {
 //                     ++count;
 //                 }
 //             }
-//         }
-//         if (count != 1) {
-//             return 0;
+//             if (count != 1) {
+//                 return 0;
+//             }
 //         }
 //     }
 //     return 1;
 // }
 
+// int checkColumns(Puzzle puzzle) {
+//     for (int j = 0; j < GRID_SIZE; ++j) {
+//         for (int num = 1; num <= GRID_SIZE; ++num) {
+//             int count = 0;
+//             for (int i = 0; i < GRID_SIZE; ++i) {
+//                 if (puzzle.userGrid[i][j] == num) {
+//                     ++count;
+//                 }
+//             }
+//             if (count != 1) {
+//                 return 0;
+//             }
+//         }
+//     }
+//     return 1;
+// }
+
+// int checkBoxes(Puzzle puzzle) {
+//     for (int vertPadding = 0; vertPadding <= GRID_SIZE-3; vertPadding += 3) {
+//         for (int horzPadding = 0; horzPadding <= GRID_SIZE-3; horzPadding += 3) {
+//             for (int num = 1; num <= GRID_SIZE; ++num) {
+//                 int count = 0;
+//                 for (int i = horzPadding; i < horzPadding+3; ++i) {
+//                     for (int j = vertPadding; j < vertPadding+3; ++j) {
+//                         if (puzzle.userGrid[i][j] == num) {
+//                             ++count;
+//                         }
+//                     }
+//                 }
+//                 if (count != 1) {
+//                     return 0;
+//                 }
+//             }
+//         }
+//     }
+//     return 1;
+// }
+
+int checkRow(Puzzle puzzle, int row) {
+    for (int num = 1; num <= GRID_SIZE; ++num) {
+        int count = 0;
+        for (int j = 0; j < GRID_SIZE; ++j) {
+            if (puzzle.userGrid[row][j] == num) {
+                ++count;
+            }
+        }
+        if (count != 1) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int checkColumn(Puzzle puzzle, int col) {
+    for (int num = 1; num <= GRID_SIZE; ++num) {
+        int count = 0;
+        for (int i = 0; i < GRID_SIZE; ++i) {
+            if (puzzle.userGrid[i][col] == num) {
+                ++count;
+            }
+        }
+        if (count != 1) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int checkBox(Puzzle puzzle, int startRow, int startCol) {
+    for (int num = 1; num <= GRID_SIZE; ++num) {
+        int count = 0;
+        for (int i = startRow; i < startRow + 3; ++i) {
+            for (int j = startCol; j < startCol + 3; ++j) {
+                if (puzzle.userGrid[i][j] == num) {
+                    ++count;
+                }
+            }
+        }
+        if (count != 1) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 int isSudokuSolved(Puzzle puzzle) {
-    return checkRows(puzzle) && checkColumns(puzzle) && checkBoxes(puzzle);
+    for (int i = 0; i < GRID_SIZE; ++i) {
+        if (!checkRow(puzzle, i) || !checkColumn(puzzle, i)) {
+            return 0;
+        }
+    }
+    for (int i = 0; i < GRID_SIZE; i += 3) {
+        for (int j = 0; j < GRID_SIZE; j += 3) {
+            if (!checkBox(puzzle, i, j)) {
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
+// other check functions don't work here because they check if *every* number appears exactly once
+// this checks exactly one number
+// further abstraction would worsen readability imo
+int isSafe(Puzzle *puzzle, int row, int col, int num) {
+    // Check the row
+    for (int x = 0; x < GRID_SIZE; x++)
+        if (puzzle->userGrid[row][x] == num)
+            return 0;
+
+    // Check the column
+    for (int x = 0; x < GRID_SIZE; x++)
+        if (puzzle->userGrid[x][col] == num)
+            return 0;
+
+    // Check the box
+    int startRow = row - row % 3;
+    int startCol = col - col % 3;
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+            if (puzzle->userGrid[i + startRow][j + startCol] == num)
+                return 0;
+
+    return 1;
+}
+
+// recursive implementation of backtracking (brute-force) algorithm
+int solveSudoku(Puzzle *puzzle, int row, int col) {
+    if (row == GRID_SIZE - 1 && col == GRID_SIZE)
+        return 1;
+
+    if (col == GRID_SIZE) {
+        row++;
+        col = 0;
+    }
+
+    if (puzzle->userGrid[row][col] > 0)
+        return solveSudoku(puzzle, row, col + 1);
+
+    for (int num = 1; num <= GRID_SIZE; num++) {
+        if (isSafe(puzzle, row, col, num)) {
+            puzzle->userGrid[row][col] = num;
+
+            if (solveSudoku(puzzle, row, col + 1))
+                return 1;
+        }
+
+        puzzle->userGrid[row][col] = 0;  // undo the current cell for backtracking
+    }
+
+    return 0;
 }
 
 
@@ -429,22 +499,22 @@ void addPuzzle(Puzzle puzzle, PuzzleArray *puzzleArray, int *puzzleCount) {
 //     }
 // }
 
-// void removeNthPuzzle(Puzzle **puzzleArray, int *puzzleCount, int n) {
-//     if (*puzzleCount > 0 && n >= 0 && n < *puzzleCount) {
-//         for (int i = n; i < *puzzleCount - 1; i++) {
-//             (*puzzleArray)[i] = (*puzzleArray)[i + 1];
-//         }
-//         *puzzleArray = realloc(*puzzleArray, (*puzzleCount - 1) * sizeof(Puzzle));
-//         if ((*puzzleCount - 1) > 0 && *puzzleArray == NULL) {
-//             printf("%s\n", translate("ERROR_MEMORY_ALLOCATION"));
-//             exit(1);
-//         }
-//         *puzzleCount = *puzzleCount - 1;
-//     }
-//     else {
-//         printf("Cannot remove puzzle: invalid index\n");
-//     }
-// }
+void removeNthPuzzle(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr, int n) {
+    if (*puzzleCountPtr > 0 && n >= 0 && n < *puzzleCountPtr) {
+        for (int i = n; i < *puzzleCountPtr - 1; ++i) {
+            (*puzzleArrayPtr)[i] = (*puzzleArrayPtr)[i + 1];
+        }
+        *puzzleArrayPtr = realloc(*puzzleArrayPtr, (*puzzleCountPtr - 1) * sizeof(Puzzle));
+        if ((*puzzleCountPtr - 1) > 0 && *puzzleArrayPtr == NULL) {
+            printf("%s\n", translate("ERROR_MEMORY_ALLOCATION"));
+            exit(1);
+        }
+        *puzzleCountPtr = *puzzleCountPtr - 1;
+    }
+    else {
+        printf("Cannot remove puzzle: invalid index\n");
+    }
+}
 
 void saveDataToFile(Puzzle *puzzleArray, int puzzleCount) {
     FILE *file = fopen(BIN_SAVE_FILENAME, "wb");
@@ -621,6 +691,48 @@ void menuChoosePuzzle(PuzzleArray *puzzleArray, int puzzleCount) {
     
 }
 
+void menuSolver(PuzzleArray *puzzleArrayPtr, int puzzleCount) {
+    clearDisplay();
+    char buffer[BUFFER_SIZE];
+    int selection;
+    char selectionChar;
+    while (1) { 
+        displayBanner();
+        printf("%d %s\n\n", puzzleCount, translate("MENU_SOLVER_LOADED"));
+        printf("%s\n", translate("MENU_SOLVER_OPTION_N"));
+        printf("%s\n\n", translate("MENU_SOLVER_OPTION_Q"));
+        printf("%s", translate("MENU_SELECTION"));
+
+        fgets(buffer, BUFFER_SIZE, stdin);
+
+        if (sscanf(buffer, "%d", &selection) == 1) {
+            if (selection > 0 && selection <= puzzleCount) {
+                solveSudoku(&(*puzzleArrayPtr)[selection-1], 0, 0);
+                clearDisplay();
+                printf(ANSI_COLOR_GREEN "%s\n\n" ANSI_COLOR_RESET, translate("MENU_SOLVER_SUCCESS"));
+            }
+            else {
+                clearDisplay();
+                printf("%s\n\n", translate("MENU_CHOOSEPUZZLE_MISSING"));
+            }
+        }
+        else if (sscanf(buffer, "%c", &selectionChar) == 1) {
+            if (selectionChar == 'q') {
+                clearDisplay();
+                break;
+            }
+            else {
+                clearDisplay();
+                printf("%s\n", translate("INVALID_INPUT"));
+            }
+        }
+        else {
+            clearDisplay();
+            printf("%s\n", translate("INVALID_INPUT"));
+        }
+    }
+}
+
 void menuStats(PuzzleArray *puzzleArray, int puzzleCount) {
     clearDisplay();
     char buffer[BUFFER_SIZE];
@@ -692,7 +804,6 @@ void menuManager(PuzzleArray *puzzleArrayPtr, int puzzleCount, PuzzleArray defau
                     break;
                 case '2':
                     clearDisplay();
-                    // printf("Sudoku solver will be implemented in version 2.0\n\n");
                     break;
                 case '3':
                     clearDisplay();
@@ -741,7 +852,7 @@ void menuMain(PuzzleArray *puzzleArray, int puzzleCount, PuzzleArray defaultPuzz
                     break;
                 case '2':
                     clearDisplay();
-                    printf("Sudoku solver will be implemented in version 2.0\n\n");
+                    menuSolver(puzzleArray, puzzleCount);
                     break;
                 case '3':
                     menuManager(puzzleArray, puzzleCount, defaultPuzzles, defaultPuzzleCount);

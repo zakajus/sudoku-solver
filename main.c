@@ -48,10 +48,16 @@ translation dictionaryEN[] = {
 
     {"MENU_MAIN_OPTION_1", "1 : Choose a puzzle to play"},
     {"MENU_MAIN_OPTION_2", "2 : Algorithmic solver"},
-    {"MENU_MAIN_OPTION_3", "3 : Statistics"},
-    {"MENU_MAIN_OPTION_R", "r : Reset all puzzles"},
+    {"MENU_MAIN_OPTION_3", "3 : Puzzle manager"},
+    {"MENU_MAIN_OPTION_4", "4 : Statistics"},
     {"MENU_MAIN_OPTION_Q", "q : Quit the program"},
-    {"MENU_MAIN_RESET", "Puzzles reset successfully!"},
+
+    {"MENU_MANAGER_OPTION_1", "1 : Reset everything*"},
+    {"MENU_MANAGER_OPTION_2", "2 : Generate a new puzzle"},
+    {"MENU_MANAGER_OPTION_3", "3 : Delete a puzzle"},
+    {"MENU_MANAGER_OPTION_Q", "q : Back"},
+    {"MENU_MANAGER_NOTE", "* Also deletes all generated puzzles!"},
+    {"MENU_MANAGER_RESET", "Puzzles reset successfully!"},
 
     {"MENU_STATS_SOLVED", "Sudokus solved:"},
     {"MENU_STATS_LAUNCHCOUNT", "Times this program was launched:"},
@@ -604,7 +610,66 @@ void menuStats(PuzzleArray *puzzleArray, int puzzleCount) {
     }
 }
 
-void menuMain(PuzzleArray *puzzleArray, int puzzleCount, Puzzle *defaultPuzzles) {
+void menuManager(PuzzleArray *puzzleArrayPtr, int puzzleCount, PuzzleArray defaultPuzzleArray) {
+    clearDisplay();
+    char buffer[BUFFER_SIZE];
+    char selectionChar;
+
+    while (1) { 
+        displayBanner();
+        printf("%s\n", translate("MENU_MANAGER_OPTION_1"));
+        printf("%s\n", translate("MENU_MANAGER_OPTION_2"));
+        printf("%s\n", translate("MENU_MANAGER_OPTION_3"));
+        printf("%s\n\n", translate("MENU_MANAGER_OPTION_Q"));
+        printf("%s\n\n", translate("MENU_MANAGER_NOTE"));
+        printf("%s", translate("MENU_SELECTION"));
+
+        fgets(buffer, BUFFER_SIZE, stdin);
+
+        if (sscanf(buffer, "%c", &selectionChar) == 1) {
+            switch (selectionChar) {
+                case '1':
+                    clearDisplay();
+                    if (remove(BIN_SAVE_FILENAME) == 0) {
+                        initDataIfNoBinary(defaultPuzzleArray, (sizeof(defaultPuzzleArray) / sizeof(defaultPuzzleArray[0])));
+                        loadDataFromFile(puzzleArrayPtr, &puzzleCount);
+                        clearDisplay();
+                        printf("%s\n", translate("MENU_MANAGER_RESET"));
+                    } 
+                    else {
+                        clearDisplay();
+                        fprintf(stderr, "%s\n", translate("ERROR_RESET_DATA"));
+                        exit(1);
+                    }
+                    break;
+                case '2':
+                    clearDisplay();
+                    // printf("Sudoku solver will be implemented in version 2.0\n\n");
+                    break;
+                case '3':
+                    clearDisplay();
+                    break;
+                case '4':
+                    // menuStats(puzzleArray, puzzleCount);
+                    clearDisplay();
+                    break;
+                case 'q':
+                    clearDisplay();
+                    return;
+                default:
+                    clearDisplay();
+                    printf("%s\n", translate("INVALID_INPUT"));
+            }
+        }
+        else {
+            clearDisplay();
+            printf("%s\n\n", translate("INVALID_INPUT"));
+        }
+    }
+
+}
+
+void menuMain(PuzzleArray *puzzleArray, int puzzleCount, PuzzleArray defaultPuzzles) {
     clearDisplay();
     char buffer[BUFFER_SIZE];
     char selectionChar;
@@ -614,7 +679,7 @@ void menuMain(PuzzleArray *puzzleArray, int puzzleCount, Puzzle *defaultPuzzles)
         printf("%s\n", translate("MENU_MAIN_OPTION_1"));
         printf("%s\n", translate("MENU_MAIN_OPTION_2"));
         printf("%s\n", translate("MENU_MAIN_OPTION_3"));
-        printf("%s\n", translate("MENU_MAIN_OPTION_R"));
+        printf("%s\n", translate("MENU_MAIN_OPTION_4"));
         printf("%s\n\n", translate("MENU_MAIN_OPTION_Q"));
         printf("%s", translate("MENU_SELECTION"));
 
@@ -631,25 +696,15 @@ void menuMain(PuzzleArray *puzzleArray, int puzzleCount, Puzzle *defaultPuzzles)
                     printf("Sudoku solver will be implemented in version 2.0\n\n");
                     break;
                 case '3':
+                    menuManager(puzzleArray, puzzleCount, defaultPuzzles);
+                    clearDisplay();
+                    break;
+                case '4':
                     menuStats(puzzleArray, puzzleCount);
                     clearDisplay();
                     break;
-                case 'r':
-                    clearDisplay();
-                    if (remove(BIN_SAVE_FILENAME) == 0) {
-                        initDataIfNoBinary(defaultPuzzles, puzzleCount);
-                        loadDataFromFile(puzzleArray, &puzzleCount);
-                        clearDisplay();
-                        printf("%s\n", translate("MENU_MAIN_RESET"));
-                    } 
-                    else {
-                        clearDisplay();
-                        fprintf(stderr, "%s\n", translate("ERROR_RESET_DATA"));
-                        exit(1);
-                    }
-                    break;
                 case 'q':
-                    clearDisplay();
+                    clearDisplay(); 
                     saveDataToFile(*puzzleArray, puzzleCount);
                     return;
                 default:

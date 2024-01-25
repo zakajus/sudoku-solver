@@ -1,3 +1,15 @@
+/**
+ * @file main.c
+ * @author Kajus Zakaras (kajus.z@tuta.io)
+ * @brief Handles puzzle initialization / saving, running log files, and launching the CLI
+ * @version 0.1
+ * @date 2024-01-25
+ * 
+ * @copyright Copyright (c) 2024
+ * 
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,12 +36,15 @@
 clock_t startTime;
 
 
+/// @brief Key-value (dictionary) pair to store display strings
 typedef struct {
     char* key;
     char value[LINE_MAX];
-} translation; // key-value pair
+} translation;
 
-// ERROR --> strings for stderr
+
+/// @brief English key-value dictionary for display strings
+/// @note ERROR prefix strings are used in stderr stream
 translation dictionaryEN[] = {
     {"MENU_SELECTION", "Enter selection: "},
     {"INVALID_INPUT", "Invalid input"},
@@ -99,6 +114,10 @@ translation dictionaryEN[] = {
     {"ERROR_READ_PUZZLES", "Failed to read puzzles from file"}
 };
 
+/// @brief Used to translate a display string key into string value from a localized dictionary
+/// @note English dictionary (dictionaryEN) is hard-coded for now, however replacing it can be easily done using a macro
+/// @param key Display string key to translate
+/// @return Localized string for display output
 char* translate(char* key) {
     int i;
     for (i = 0; i < sizeof(dictionaryEN) / sizeof(translation); i++) {
@@ -110,20 +129,31 @@ char* translate(char* key) {
     exit(1);
 }
 
+/// @brief Structure to store data of a single Sudoku puzzle
+/// @details The grid is always fixed, except for when generating a new sudoku
 typedef struct Puzzle {
+    /// @brief The unmodified version of the puzzle
     int grid[GRID_SIZE][GRID_SIZE];
-    int userGrid[GRID_SIZE][GRID_SIZE]; // Modified by user, can be reset
+    /// @brief The user modified version of the grid
+    int userGrid[GRID_SIZE][GRID_SIZE];
+    /// @brief Bitmap used to determine which squares are modifiable by user
+    /// @note If 1 == unmodifiable
     int map[GRID_SIZE][GRID_SIZE];
 } Puzzle;
 
+/// @brief Alias for an array of puzzles 
 typedef Puzzle* PuzzleArray;
 
+/// @brief Finds the CPU runtime of the current launch
+/// @return Runtime in seconds 
 long double findCurrentRuntime() {
     clock_t endTime = clock();
     long double cpuTime = ((long double) (endTime - startTime)) / CLOCKS_PER_SEC;
     return cpuTime;
 }
 
+
+/// @brief Calculates and appends CPU runtime during this launch to log file 
 void logRuntime() {
     long double cpuTime = findCurrentRuntime();
 
@@ -137,6 +167,7 @@ void logRuntime() {
     fclose(file);
 }
 
+/// @brief Appends launch date and time to log file
 void logLaunch() {
     FILE *file = fopen(LOG_FILENAME, "a+");
     if (file == NULL) {
@@ -154,6 +185,8 @@ void logLaunch() {
     fclose(file);
 }
 
+/// @brief Calculates total CPU runtime from log and the current launch
+/// @return Total CPU runtime in seconds
 long double readTotalRuntime() {
     long double totalRuntime = 0.0, previousRuntime = 0.0;
     char line[BUFFER_SIZE];
@@ -177,6 +210,8 @@ long double readTotalRuntime() {
     return totalRuntime;
 }
 
+/// @brief Reads total launch count from log file
+/// @return Count of total launches by program
 int readLaunchCount() {
     int launchCount = 0;
     char line[BUFFER_SIZE];
@@ -198,10 +233,13 @@ int readLaunchCount() {
     return launchCount;
 }
 
+/// @brief Clears CLI display
 void clearDisplay() {
     printf("\033[H\033[J");
 }
 
+/// @brief Generates bitmap in puzzle from its grid array values
+/// @param puzzle Puzzle for which to generate the bitmap
 void generateBitmap(Puzzle *puzzle) {
     int map[GRID_SIZE][GRID_SIZE];
     for (int i = 0; i < GRID_SIZE; ++i) {
@@ -213,6 +251,9 @@ void generateBitmap(Puzzle *puzzle) {
     }
 }
 
+
+/// @brief Replaces user grid with an unmodified copy
+/// @param puzzle Puzzle for which to reset the user grid
 void generateUserGrid(Puzzle *puzzle) {
     for (int i = 0; i < GRID_SIZE; ++i) {
         for (int j = 0; j < GRID_SIZE; ++j) {
@@ -221,15 +262,12 @@ void generateUserGrid(Puzzle *puzzle) {
     }
 }
 
-void copyPuzzle(Puzzle puzzle, Puzzle *newPuzzle) {
-    for (int i = 0; i < GRID_SIZE; ++i) {
-        for (int j = 0; j < GRID_SIZE; ++j) {
-            newPuzzle->grid[i][j] = puzzle.grid[i][j];
-            newPuzzle->map[i][j] = puzzle.grid[i][j];
-        }
-    }
-}
-
+/// @brief Change user grid square if bitmap allows
+/// @param puzzle The puzzle to modify
+/// @param x Cartesian x coordinate of square
+/// @param y Cartesian y coordinate of square
+/// @param value Value to write
+/// @return -1: unchanged due to bitmap; 0: changed successfully
 int changeValue(Puzzle *puzzle, int x, int y, int value) {
     if (puzzle->map[GRID_SIZE-y][x-1] == 0) {
         puzzle->userGrid[GRID_SIZE-y][x-1] = value;
@@ -238,7 +276,9 @@ int changeValue(Puzzle *puzzle, int x, int y, int value) {
     return -1; 
 }
 
-// improper indentation is intentional!
+
+/// @brief Display Sudoku banner
+/// @note Improper tab indentation is intentional - otherwise banner deforms
 void displayBanner() {
 printf("\
   ___         _     _        \n \
@@ -249,6 +289,9 @@ printf("\
 ");
 }
 
+/// @brief Displays grid of puzzle in CLI
+/// @param puzzle The puzzle to display
+/// @note As of version 1.00, never used in production, however very useful for debugging
 void displayPuzzleGrid(Puzzle puzzle) {
     for (int i = 0; i < GRID_SIZE; ++i) {
         if ((i % 3 == 0) && (i > 0)) {
@@ -271,6 +314,8 @@ void displayPuzzleGrid(Puzzle puzzle) {
     printf("\n");
 }
 
+/// @brief Displays user grid of puzzle in CLI
+/// @param puzzle The puzzle to display
 void displayPuzzleUserGrid(Puzzle puzzle) {
     for (int i = 0; i < GRID_SIZE; ++i) {
         if ((i % 3 == 0) && (i > 0)) {
@@ -293,6 +338,10 @@ void displayPuzzleUserGrid(Puzzle puzzle) {
     printf("\n");
 }
 
+/// @brief Dynamically appends puzzle to array and handles memory allocation
+/// @param puzzle Puzzle to append
+/// @param puzzleArray Array to append to
+/// @param puzzleCount Array size
 void addPuzzle(Puzzle puzzle, PuzzleArray *puzzleArray, int *puzzleCount) {
     *puzzleArray = realloc(*puzzleArray, (*puzzleCount + 1) * sizeof(Puzzle));
     if (*puzzleArray == NULL) {
@@ -305,6 +354,10 @@ void addPuzzle(Puzzle puzzle, PuzzleArray *puzzleArray, int *puzzleCount) {
     *puzzleCount = *puzzleCount + 1;
 }
 
+/// @brief Checks if puzzle user grid row includes 1-9 exactly once
+/// @param puzzle Puzzle to check
+/// @param row Row to check
+/// @return 1: Proper row; 0: Improper row
 int checkRow(Puzzle puzzle, int row) {
     for (int num = 1; num <= GRID_SIZE; ++num) {
         int count = 0;
@@ -320,6 +373,11 @@ int checkRow(Puzzle puzzle, int row) {
     return 1;
 }
 
+
+/// @brief Checks if puzzle user grid column includes 1-9 exactly once
+/// @param puzzle Puzzle to check
+/// @param col Column to check
+/// @return 1: Proper column; 0: Improper column
 int checkColumn(Puzzle puzzle, int col) {
     for (int num = 1; num <= GRID_SIZE; ++num) {
         int count = 0;
@@ -335,6 +393,12 @@ int checkColumn(Puzzle puzzle, int col) {
     return 1;
 }
 
+
+/// @brief Checks if puzzle puzzle 3x3 subgrid includes 1-9 exactly once
+/// @param puzzle Puzzle to check
+/// @param startRow Subgrid start row
+/// @param startCol Subgrid start column
+/// @return 1: Proper subgrid; 0: Improper subgrid
 int checkBox(Puzzle puzzle, int startRow, int startCol) {
     for (int num = 1; num <= GRID_SIZE; ++num) {
         int count = 0;
@@ -352,6 +416,9 @@ int checkBox(Puzzle puzzle, int startRow, int startCol) {
     return 1;
 }
 
+/// @brief Checks if puzzle is fully solved
+/// @param puzzle Puzzle to check
+/// @return 1: Solved; 0: Unsolved
 int isSudokuSolved(Puzzle puzzle) {
     for (int i = 0; i < GRID_SIZE; ++i) {
         if (!checkRow(puzzle, i) || !checkColumn(puzzle, i)) {
@@ -368,20 +435,22 @@ int isSudokuSolved(Puzzle puzzle) {
     return 1;
 }
 
-// other check functions don't work here because they check if *every* number appears exactly once
-// this checks exactly one number
+/// @brief Checks if num would appear once in row, column, subgrid
+/// @param puzzle Puzzle to check
+/// @param row Row to check
+/// @param col Column to check
+/// @param num Number that would be written
+/// @return 1: Safe to write; 0: Unsafe to write
+/// @note Functions checkCol(), checkRow(), and checkBox() do not work here since they check every number
 int isSquareSafe(Puzzle *puzzle, int row, int col, int num) {
-    // Check the row
     for (int x = 0; x < GRID_SIZE; x++)
         if (puzzle->userGrid[row][x] == num)
             return 0;
 
-    // Check the column
     for (int x = 0; x < GRID_SIZE; x++)
         if (puzzle->userGrid[x][col] == num)
             return 0;
 
-    // Check the box
     int startRow = row - row % 3;
     int startCol = col - col % 3;
     for (int i = 0; i < 3; i++)
@@ -392,7 +461,13 @@ int isSquareSafe(Puzzle *puzzle, int row, int col, int num) {
     return 1;
 }
 
-// recursive implementation of backtracking (brute-force) algorithm
+
+/// @brief Solves user grid of puzzle
+/// @param puzzle Puzzle to solve
+/// @param row Call with 0, used by recursive calls
+/// @param col Call with 0, used by recursive calls
+/// @return 0: unsolvable if returned by initial call; used to trigger backtrack in recursion
+/// @note Uses a backtracking (brute-force) algorithm. More optimized algorithms (e.g. stochastic search) are outside the scope of this project.
 int solveSudokuUserGrid(Puzzle *puzzle, int row, int col) {
     if (row == GRID_SIZE - 1 && col == GRID_SIZE)
         return 1;
@@ -402,7 +477,8 @@ int solveSudokuUserGrid(Puzzle *puzzle, int row, int col) {
         col = 0;
     }
 
-    if (puzzle->userGrid[row][col] > 0)        return solveSudokuUserGrid(puzzle, row, col + 1);
+    if (puzzle->userGrid[row][col] > 0)        
+        return solveSudokuUserGrid(puzzle, row, col + 1);
 
     for (int num = 1; num <= GRID_SIZE; num++) {
         if (isSquareSafe(puzzle, row, col, num)) {
@@ -412,13 +488,18 @@ int solveSudokuUserGrid(Puzzle *puzzle, int row, int col) {
                 return 1;
         }
 
-        puzzle->userGrid[row][col] = 0;  // undo the current cell for backtracking
+        puzzle->userGrid[row][col] = 0;  // undo the current square for backtracking
     }
 
     return 0;
 }
 
 
+/// @brief Calculates the number of solved puzzles in array
+/// @param puzzleArrayCount  Array size
+/// @param puzzleArray Array to check
+/// @return Number of solved puzzles in array
+/// @note Can be optimized in the future by storing .solved value in Puzzle structure
 int countSolvedSudokus(int puzzleArrayCount, PuzzleArray puzzleArray) {
     int solvedCount = 0;
     for (int i = 0; i < puzzleArrayCount; ++i) {

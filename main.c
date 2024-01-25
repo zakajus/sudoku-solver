@@ -1,12 +1,3 @@
-/*
-    TODO:
-    - Fix sudoku generator
-    - Unit tests
-    - Documentation
-    - Evaluate code based on criteria --> clean up and refactor
-    - Video
-*/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -302,61 +293,6 @@ void displayPuzzleUserGrid(Puzzle puzzle) {
     printf("\n");
 }
 
-// int checkRows(Puzzle puzzle) {
-//     for (int i = 0; i < GRID_SIZE; ++i) {
-//         for (int num = 1; num <= GRID_SIZE; ++num) {
-//             int count = 0;
-//             for (int j = 0; j < GRID_SIZE; ++j) {
-//                 if (puzzle.userGrid[i][j] == num) {
-//                     ++count;
-//                 }
-//             }
-//             if (count != 1) {
-//                 return 0;
-//             }
-//         }
-//     }
-//     return 1;
-// }
-
-// int checkColumns(Puzzle puzzle) {
-//     for (int j = 0; j < GRID_SIZE; ++j) {
-//         for (int num = 1; num <= GRID_SIZE; ++num) {
-//             int count = 0;
-//             for (int i = 0; i < GRID_SIZE; ++i) {
-//                 if (puzzle.userGrid[i][j] == num) {
-//                     ++count;
-//                 }
-//             }
-//             if (count != 1) {
-//                 return 0;
-//             }
-//         }
-//     }
-//     return 1;
-// }
-
-// int checkBoxes(Puzzle puzzle) {
-//     for (int vertPadding = 0; vertPadding <= GRID_SIZE-3; vertPadding += 3) {
-//         for (int horzPadding = 0; horzPadding <= GRID_SIZE-3; horzPadding += 3) {
-//             for (int num = 1; num <= GRID_SIZE; ++num) {
-//                 int count = 0;
-//                 for (int i = horzPadding; i < horzPadding+3; ++i) {
-//                     for (int j = vertPadding; j < vertPadding+3; ++j) {
-//                         if (puzzle.userGrid[i][j] == num) {
-//                             ++count;
-//                         }
-//                     }
-//                 }
-//                 if (count != 1) {
-//                     return 0;
-//                 }
-//             }
-//         }
-//     }
-//     return 1;
-// }
-
 void addPuzzle(Puzzle puzzle, PuzzleArray *puzzleArray, int *puzzleCount) {
     *puzzleArray = realloc(*puzzleArray, (*puzzleCount + 1) * sizeof(Puzzle));
     if (*puzzleArray == NULL) {
@@ -571,20 +507,6 @@ void generatePuzzle(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr, int clues)
     generateBitmap(&newPuzzle);
     addPuzzle(newPuzzle, puzzleArrayPtr, puzzleCountPtr);
 }
-
-// void removeLastPuzzle(Puzzle **puzzleArray, int *puzzleCount) {
-//     if (*puzzleCount > 0) {
-//         *puzzleArray = realloc(*puzzleArray, (*puzzleCount - 1) * sizeof(Puzzle));
-//         if ((*puzzleCount - 1) > 0 && *puzzleArray == NULL) {
-//             printf("Memory allocation failure\n");
-//             exit(1);
-//         }
-//         *puzzleCount = *puzzleCount - 1;
-//     }
-//     else {
-//         printf("Cannot remove puzzle from empty list\n");
-//     }
-// }
 
 void deleteNthPuzzle(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr, int n) {
     for (int i = n; i < *puzzleCountPtr - 1; ++i) {

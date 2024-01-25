@@ -1,10 +1,6 @@
 /*
     TODO:
-    - Algorithmic solver
-        - Works with solvable puzzles
-        - Is able to detect if there are no solutions --> generate random sudokus to solve
-        - Can find all answers if n<17
-        - Optimization
+    - Fix sudoku generator
     - Unit tests
     - Documentation
     - Evaluate code based on criteria --> clean up and refactor
@@ -24,6 +20,7 @@
 #define LOG_FILENAME "log.txt"
 
 #define GRID_SIZE 9
+#define SUBGRID_SIZE 3
 #define LINE_MAX 80
 #define BUFFER_SIZE 128
 
@@ -65,6 +62,12 @@ translation dictionaryEN[] = {
     {"MENU_DELETE_MISSING", "Puzzle does not exist"},
     {"MENU_DELETE_PUZZLE", "Puzzle"},
     {"MENU_DELETE_DELETED", "deleted successfully!"},
+
+    {"MENU_GENERATE_LOADED", "puzzles have been loaded"},
+    {"MENU_GENERATE_OPTION_N", "n : Generate puzzle with n clues"},
+    {"MENU_GENERATE_OPTION_Q", "q : Back"},
+    {"MENU_GENERATE_CLUES", "Puzzle must have [17;81] clues"},
+    {"MENU_GENERATE_GENERATED", "Puzzle generated successfully!"},
 
     {"MENU_SOLVER_LOADED", "puzzles have been loaded"},
     {"MENU_SOLVER_OPTION_N", "n : Solve nth puzzle"},
@@ -354,6 +357,18 @@ void displayPuzzleUserGrid(Puzzle puzzle) {
 //     return 1;
 // }
 
+void addPuzzle(Puzzle puzzle, PuzzleArray *puzzleArray, int *puzzleCount) {
+    *puzzleArray = realloc(*puzzleArray, (*puzzleCount + 1) * sizeof(Puzzle));
+    if (*puzzleArray == NULL) {
+        fprintf(stderr, "%s", translate("ERROR_MEMORY_ALLOCATION"));
+        exit(1);
+    }
+    generateBitmap(&puzzle);
+    generateUserGrid(&puzzle);
+    (*puzzleArray)[*puzzleCount] = puzzle;
+    *puzzleCount = *puzzleCount + 1;
+}
+
 int checkRow(Puzzle puzzle, int row) {
     for (int num = 1; num <= GRID_SIZE; ++num) {
         int count = 0;
@@ -419,8 +434,7 @@ int isSudokuSolved(Puzzle puzzle) {
 
 // other check functions don't work here because they check if *every* number appears exactly once
 // this checks exactly one number
-// further abstraction would worsen readability imo
-int isSafe(Puzzle *puzzle, int row, int col, int num) {
+int isSquareSafe(Puzzle *puzzle, int row, int col, int num) {
     // Check the row
     for (int x = 0; x < GRID_SIZE; x++)
         if (puzzle->userGrid[row][x] == num)
@@ -443,7 +457,7 @@ int isSafe(Puzzle *puzzle, int row, int col, int num) {
 }
 
 // recursive implementation of backtracking (brute-force) algorithm
-int solveSudoku(Puzzle *puzzle, int row, int col) {
+int solveSudokuUserGrid(Puzzle *puzzle, int row, int col) {
     if (row == GRID_SIZE - 1 && col == GRID_SIZE)
         return 1;
 
@@ -452,14 +466,13 @@ int solveSudoku(Puzzle *puzzle, int row, int col) {
         col = 0;
     }
 
-    if (puzzle->userGrid[row][col] > 0)
-        return solveSudoku(puzzle, row, col + 1);
+    if (puzzle->userGrid[row][col] > 0)        return solveSudokuUserGrid(puzzle, row, col + 1);
 
     for (int num = 1; num <= GRID_SIZE; num++) {
-        if (isSafe(puzzle, row, col, num)) {
+        if (isSquareSafe(puzzle, row, col, num)) {
             puzzle->userGrid[row][col] = num;
 
-            if (solveSudoku(puzzle, row, col + 1))
+            if (solveSudokuUserGrid(puzzle, row, col + 1))
                 return 1;
         }
 
@@ -480,16 +493,83 @@ int countSolvedSudokus(int puzzleArrayCount, PuzzleArray puzzleArray) {
     return solvedCount;
 }
 
-void addPuzzle(Puzzle puzzle, PuzzleArray *puzzleArray, int *puzzleCount) {
-    *puzzleArray = realloc(*puzzleArray, (*puzzleCount + 1) * sizeof(Puzzle));
-    if (*puzzleArray == NULL) {
-        fprintf(stderr, "%s", translate("ERROR_MEMORY_ALLOCATION"));
-        exit(1);
+void fillUserGridDiagonal(Puzzle* puzzle) {
+    for (int i = 0; i < GRID_SIZE; i += SUBGRID_SIZE) {
+        int numbers[GRID_SIZE];
+        for (int j = 0; j < GRID_SIZE; ++j) {
+            numbers[j] = j + 1;
+        }
+
+        // Shuffle using Fisher-Yates algorithm
+        for (int j = GRID_SIZE - 1; j > 0; --j) {
+            int r = rand() % (j + 1);
+            int temp = numbers[j];
+            numbers[j] = numbers[r];
+            numbers[r] = temp;
+        }
+
+        for (int j = 0; j < SUBGRID_SIZE; ++j) {
+            for (int k = 0; k < SUBGRID_SIZE; ++k) {
+                puzzle->userGrid[i + j][i + k] = numbers[j * SUBGRID_SIZE + k];
+            }
+        }
     }
-    generateBitmap(&puzzle);
-    generateUserGrid(&puzzle);
-    (*puzzleArray)[*puzzleCount] = puzzle;
-    *puzzleCount = *puzzleCount + 1;
+}
+
+void setNCluesInUserGrid(Puzzle* puzzle, int n) {
+    srand(time(NULL));
+
+    int clues = 0;
+    for (int i = 0; i < GRID_SIZE; ++i) {
+        for (int j = 0; j < GRID_SIZE; ++j) {
+            if (puzzle->userGrid[i][j] != 0) {
+                clues++;
+            }
+        }
+    }
+
+    // Remove numbers until n remain
+    while (clues > n) {
+        int i = rand() % GRID_SIZE;
+        int j = rand() % GRID_SIZE;
+        if (puzzle->userGrid[i][j] != 0) {
+            puzzle->userGrid[i][j] = 0;
+            clues--;
+        }
+    }
+}
+
+void copyUserGridtoGrid(Puzzle *puzzle) {
+    for (int i = 0; i < GRID_SIZE; ++i) {
+        for (int j = 0; j < GRID_SIZE; ++j) {
+            puzzle->grid[i][j] = puzzle->userGrid[i][j];
+        }
+    }
+}
+
+void generatePuzzle(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr, int clues) {
+
+    // needed; otherwise puzzle not properly initalized
+    // alternative is to pass empty puzzle from main --> more memory used in call stack
+    Puzzle newPuzzle = {{
+        {0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0}, 
+        {0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0}
+        }};
+
+    generateUserGrid(&newPuzzle);
+    fillUserGridDiagonal(&newPuzzle);
+    solveSudokuUserGrid(&newPuzzle, 0, 0);
+    setNCluesInUserGrid(&newPuzzle, clues);
+    copyUserGridtoGrid(&newPuzzle);
+    generateBitmap(&newPuzzle);
+    addPuzzle(newPuzzle, puzzleArrayPtr, puzzleCountPtr);
 }
 
 // void removeLastPuzzle(Puzzle **puzzleArray, int *puzzleCount) {
@@ -507,20 +587,15 @@ void addPuzzle(Puzzle puzzle, PuzzleArray *puzzleArray, int *puzzleCount) {
 // }
 
 void deleteNthPuzzle(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr, int n) {
-    if (*puzzleCountPtr > 0 && n >= 0 && n < *puzzleCountPtr) {
-        for (int i = n; i < *puzzleCountPtr - 1; ++i) {
-            (*puzzleArrayPtr)[i] = (*puzzleArrayPtr)[i + 1];
-        }
-        *puzzleArrayPtr = realloc(*puzzleArrayPtr, (*puzzleCountPtr - 1) * sizeof(Puzzle));
-        if ((*puzzleCountPtr - 1) > 0 && *puzzleArrayPtr == NULL) {
-            printf("%s\n", translate("ERROR_MEMORY_ALLOCATION"));
-            exit(1);
-        }
-        *puzzleCountPtr = *puzzleCountPtr - 1;
+    for (int i = n; i < *puzzleCountPtr - 1; ++i) {
+        (*puzzleArrayPtr)[i] = (*puzzleArrayPtr)[i + 1];
     }
-    else {
-        printf("Cannot remove puzzle: invalid index\n");
+    *puzzleArrayPtr = realloc(*puzzleArrayPtr, (*puzzleCountPtr - 1) * sizeof(Puzzle));
+    if ((*puzzleCountPtr - 1) > 0 && *puzzleArrayPtr == NULL) {
+        printf("%s\n", translate("ERROR_MEMORY_ALLOCATION"));
+        exit(1);
     }
+    *puzzleCountPtr = *puzzleCountPtr - 1;
 }
 
 void saveDataToFile(Puzzle *puzzleArray, int puzzleCount) {
@@ -755,7 +830,7 @@ void menuSolver(PuzzleArray *puzzleArrayPtr, int puzzleCount) {
 
         if (sscanf(buffer, "%d", &selection) == 1) {
             if (selection > 0 && selection <= puzzleCount) {
-                solveSudoku(&(*puzzleArrayPtr)[selection-1], 0, 0);
+                solveSudokuUserGrid(&(*puzzleArrayPtr)[selection-1], 0, 0);
                 clearDisplay();
                 printf(ANSI_COLOR_GREEN "%s\n\n" ANSI_COLOR_RESET, translate("MENU_SOLVER_SUCCESS"));
             }
@@ -818,6 +893,49 @@ void menuStats(PuzzleArray *puzzleArray, int puzzleCount) {
     }
 }
 
+void menuGenerate(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr) {
+    clearDisplay();
+    char buffer[BUFFER_SIZE];
+    int selection;
+    char selectionChar;
+    while (1) { 
+        displayBanner();
+        printf("%d %s\n\n", *puzzleCountPtr, translate("MENU_GENERATE_LOADED"));
+        printf("%s\n", translate("MENU_GENERATE_OPTION_N"));
+        printf("%s\n\n", translate("MENU_GENERATE_OPTION_Q"));
+        printf("%s", translate("MENU_SELECTION"));
+
+        fgets(buffer, BUFFER_SIZE, stdin);
+
+        if (sscanf(buffer, "%d", &selection) == 1) {
+            if (selection >= 17 && selection <= 81) {
+                printf("%d %d", *puzzleCountPtr, selection);
+                generatePuzzle(puzzleArrayPtr, puzzleCountPtr, selection);
+                clearDisplay();
+                printf(ANSI_COLOR_GREEN "%s\n\n" ANSI_COLOR_RESET, translate("MENU_GENERATE_GENERATED"));
+            }
+            else {
+                clearDisplay();
+                printf("%s\n\n", translate("MENU_GENERATE_CLUES"));
+            }
+        }
+        else if (sscanf(buffer, "%c", &selectionChar) == 1) {
+            if (selectionChar == 'q') {
+                clearDisplay();
+                break;
+            }
+            else {
+                clearDisplay();
+                printf("%s\n", translate("INVALID_INPUT"));
+            }
+        }
+        else {
+            clearDisplay();
+            printf("%s\n", translate("INVALID_INPUT"));
+        }
+    }
+}
+
 void menuManager(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr, PuzzleArray defaultPuzzleArray, int defaultPuzzleCount) {
     clearDisplay();
     char buffer[BUFFER_SIZE];
@@ -852,14 +970,11 @@ void menuManager(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr, PuzzleArray d
                     break;
                 case '2':
                     clearDisplay();
+                    menuGenerate(puzzleArrayPtr, puzzleCountPtr);
                     break;
                 case '3':
                     clearDisplay();
                     menuDelete(puzzleArrayPtr, puzzleCountPtr);
-                    break;
-                case '4':
-                    // menuStats(puzzleArray, puzzleCount);
-                    clearDisplay();
                     break;
                 case 'q':
                     clearDisplay();
@@ -934,8 +1049,11 @@ int main() {
 
     srand(time(NULL));
 
+
+    
     int currentID = 0; // add to read from file
     int puzzleArrayCount = 0;
+
     Puzzle *puzzleArray = NULL;
     Puzzle exWrong1 = {{ // 1,1 --> 7
         {3, 1, 6, 5, 7, 8, 4, 9, 2},

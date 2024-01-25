@@ -1,8 +1,8 @@
 /**
  * @file main.c
  * @author Kajus Zakaras (kajus.z@tuta.io)
- * @brief Handles puzzle initialization / saving, running log files, and launching the CLI
- * @version 0.1
+ * @brief Handles puzzle initialization / saving, running log files, and launching the game loop
+ * @version 1.00
  * @date 2024-01-25
  * 
  * @copyright Copyright (c) 2024
@@ -13,32 +13,49 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 #include <stdbool.h>
-#include <ctype.h>
 #include <time.h>
-#include <math.h>
 
+#include <assert.h>
+// #include <ctype.h>
+// #include <math.h>
+
+
+/// @brief Binary save file name
 #define BIN_SAVE_FILENAME "save.bin"
+/// @brief Log text file name 
 #define LOG_FILENAME "log.txt"
 
+
+/// @brief Grid size of Sudoku puzzle (9x9 is standard)
 #define GRID_SIZE 9
+/// @brief Subgrids the Sudoku grid is divided into
 #define SUBGRID_SIZE 3
+/// @brief Maximum length of displeyed strings
 #define LINE_MAX 80
+/// @brief Buffer size for user input
 #define BUFFER_SIZE 128
 
+
+/// @brief ASCII break code to make text magenta
 #define ANSI_COLOR_MAGENTA "\x1b[35m"
-#define ANSI_COLOR_RESET   "\x1b[0m"
+/// @brief ASCII break code to make text green
 #define ANSI_COLOR_GREEN   "\x1b[32m"
+/// @brief ASCII break code to make text red
 #define ANSI_COLOR_RED     "\x1b[31m"
+/// @brief ASCII break code to reset text color
+#define ANSI_COLOR_RESET   "\x1b[0m"
 
 
+/// @brief Global variable to track CPU runtime
 clock_t startTime;
 
 
 /// @brief Key-value (dictionary) pair to store display strings
 typedef struct {
+    /// @brief Key to be converted by translate()
     char* key;
+    /// @brief Value to be output to display
     char value[LINE_MAX];
 } translation;
 
@@ -152,7 +169,6 @@ long double findCurrentRuntime() {
     return cpuTime;
 }
 
-
 /// @brief Calculates and appends CPU runtime during this launch to log file 
 void logRuntime() {
     long double cpuTime = findCurrentRuntime();
@@ -251,7 +267,6 @@ void generateBitmap(Puzzle *puzzle) {
     }
 }
 
-
 /// @brief Replaces user grid with an unmodified copy
 /// @param puzzle Puzzle for which to reset the user grid
 void generateUserGrid(Puzzle *puzzle) {
@@ -275,7 +290,6 @@ int changeValue(Puzzle *puzzle, int x, int y, int value) {
     }
     return -1; 
 }
-
 
 /// @brief Display Sudoku banner
 /// @note Improper tab indentation is intentional - otherwise banner deforms
@@ -341,7 +355,7 @@ void displayPuzzleUserGrid(Puzzle puzzle) {
 /// @brief Dynamically appends puzzle to array and handles memory allocation
 /// @param puzzle Puzzle to append
 /// @param puzzleArray Array to append to
-/// @param puzzleCount Array size
+/// @param puzzleCount Array size, increments +1 after automatically
 void addPuzzle(Puzzle puzzle, PuzzleArray *puzzleArray, int *puzzleCount) {
     *puzzleArray = realloc(*puzzleArray, (*puzzleCount + 1) * sizeof(Puzzle));
     if (*puzzleArray == NULL) {
@@ -441,7 +455,7 @@ int isSudokuSolved(Puzzle puzzle) {
 /// @param col Column to check
 /// @param num Number that would be written
 /// @return 1: Safe to write; 0: Unsafe to write
-/// @note Functions checkCol(), checkRow(), and checkBox() do not work here since they check every number
+/// @note Functions checkColumn(), checkRow(), and checkBox() do not work here since they check every number
 int isSquareSafe(Puzzle *puzzle, int row, int col, int num) {
     for (int x = 0; x < GRID_SIZE; x++)
         if (puzzle->userGrid[row][x] == num)
@@ -467,7 +481,7 @@ int isSquareSafe(Puzzle *puzzle, int row, int col, int num) {
 /// @param row Call with 0, used by recursive calls
 /// @param col Call with 0, used by recursive calls
 /// @return 0: unsolvable if returned by initial call; used to trigger backtrack in recursion
-/// @note Uses a backtracking (brute-force) algorithm. More optimized algorithms (e.g. stochastic search) are outside the scope of this project.
+/// @details Uses a backtracking (brute-force) algorithm. More optimized algorithms (e.g. stochastic search) are outside the scope of this project.
 int solveSudokuUserGrid(Puzzle *puzzle, int row, int col) {
     if (row == GRID_SIZE - 1 && col == GRID_SIZE)
         return 1;
@@ -510,6 +524,9 @@ int countSolvedSudokus(int puzzleArrayCount, PuzzleArray puzzleArray) {
     return solvedCount;
 }
 
+/// @brief Generates valid random values for subgrids across the primary diagonal
+/// @param puzzle Puzzle to fill
+/// @details Shuffled using Fisher-Yates algorithm, relies on <time.h> to seed on launch
 void fillUserGridDiagonal(Puzzle* puzzle) {
     for (int i = 0; i < GRID_SIZE; i += SUBGRID_SIZE) {
         int numbers[GRID_SIZE];
@@ -517,7 +534,7 @@ void fillUserGridDiagonal(Puzzle* puzzle) {
             numbers[j] = j + 1;
         }
 
-        // Shuffle using Fisher-Yates algorithm
+        // Shuffle
         for (int j = GRID_SIZE - 1; j > 0; --j) {
             int r = rand() % (j + 1);
             int temp = numbers[j];
@@ -533,6 +550,9 @@ void fillUserGridDiagonal(Puzzle* puzzle) {
     }
 }
 
+/// @brief Clears user grid squares until n clues remain
+/// @param puzzle Puzzle to modify
+/// @param n How many clues (non-empty squares) should remain 
 void setNCluesInUserGrid(Puzzle* puzzle, int n) {
     srand(time(NULL));
 
@@ -545,7 +565,7 @@ void setNCluesInUserGrid(Puzzle* puzzle, int n) {
         }
     }
 
-    // Remove numbers until n remain
+    // Clear squares
     while (clues > n) {
         int i = rand() % GRID_SIZE;
         int j = rand() % GRID_SIZE;
@@ -556,6 +576,8 @@ void setNCluesInUserGrid(Puzzle* puzzle, int n) {
     }
 }
 
+/// @brief Copies values from user grid to grid in puzzle
+/// @param puzzle Puzzle to modify
 void copyUserGridtoGrid(Puzzle *puzzle) {
     for (int i = 0; i < GRID_SIZE; ++i) {
         for (int j = 0; j < GRID_SIZE; ++j) {
@@ -564,6 +586,14 @@ void copyUserGridtoGrid(Puzzle *puzzle) {
     }
 }
 
+/// @brief Generates and appends a valid puzzle with specified number of clues to array
+/// @param puzzleArrayPtr Array to append to
+/// @param puzzleCountPtr Array size
+/// @param clues Number of clues puzzle will have (n>=17)
+/// @note Make sure new puzzle is properly allocated in stack - current method works based on testing
+/// @details Dependant on helper functions: 
+/// \ generateUserGrid(), fillUserGridDiagonal(), solveSudokuUserGrid(), setNCluesInUserGrid(),
+/// \ copyUserGridtoGrid(), generateBitmap(), addPuzzle()
 void generatePuzzle(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr, int clues) {
 
     // needed; otherwise puzzle not properly initalized
@@ -589,6 +619,10 @@ void generatePuzzle(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr, int clues)
     addPuzzle(newPuzzle, puzzleArrayPtr, puzzleCountPtr);
 }
 
+/// @brief Deletes nth puzzle from array and reallocates memory
+/// @param puzzleArrayPtr Array to delete from
+/// @param puzzleCountPtr Array size, increments -1 after automatically
+/// @param n nth puzzle to delete, 
 void deleteNthPuzzle(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr, int n) {
     for (int i = n; i < *puzzleCountPtr - 1; ++i) {
         (*puzzleArrayPtr)[i] = (*puzzleArrayPtr)[i + 1];
@@ -601,6 +635,11 @@ void deleteNthPuzzle(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr, int n) {
     *puzzleCountPtr = *puzzleCountPtr - 1;
 }
 
+/// @brief Saves puzzle array and size to .bin file 
+/// @param puzzleArray Array to save
+/// @param puzzleCount Array size to save
+/// @details Change binary file name using #BIN_SAVE_FILENAME macro
+/// @note Saves array size before array!
 void saveDataToFile(Puzzle *puzzleArray, int puzzleCount) {
     FILE *file = fopen(BIN_SAVE_FILENAME, "wb");
     if (file == NULL) {
@@ -619,6 +658,10 @@ void saveDataToFile(Puzzle *puzzleArray, int puzzleCount) {
     fclose(file);
 }
 
+/// @brief Loads puzzle array and size from .bin file, allocates memory
+/// @param puzzleArray Array to load to 
+/// @param puzzleCount Where to save array size
+/// @details Change binary file name using #BIN_SAVE_FILENAME macro. Loads array size before array.
 void loadDataFromFile(PuzzleArray *puzzleArray, int *puzzleCount) {
     FILE *file = fopen(BIN_SAVE_FILENAME, "rb");
     if (file == NULL) {
@@ -646,6 +689,11 @@ void loadDataFromFile(PuzzleArray *puzzleArray, int *puzzleCount) {
     fclose(file);
 }
 
+
+/// @brief Initializes dynamic puzzle array if there is no .bin save file
+/// @param puzzleArray Array of default puzzles to initialize
+/// @param puzzleCount Array size
+/// @details Change binary file name using #BIN_SAVE_FILENAME macro.
 void initDataIfNoBinary(Puzzle *puzzleArray, int puzzleCount) {
     for (int i = 0; i < puzzleCount; ++i) {
         generateUserGrid(&(puzzleArray[i]));
@@ -660,12 +708,9 @@ void initDataIfNoBinary(Puzzle *puzzleArray, int puzzleCount) {
     }
 }
 
-void displayMenu(char strArray[][LINE_MAX], int arrSize) {
-    for (int i = 0; i < arrSize; ++i) {
-        printf("%s", strArray[i]);
-    } 
-}
-
+/// @brief Opens CLI for playing a puzzle
+/// @param puzzle Puzzle to play
+/// @details Launched by menuChoosePuzzle()
 void menuPlay(Puzzle *puzzle) {
     clearDisplay();
     char buffer[BUFFER_SIZE];
@@ -728,6 +773,10 @@ void menuPlay(Puzzle *puzzle) {
     }
 }
 
+/// @brief Opens CLI to choose puzzle to play
+/// @param puzzleArray Array to choose puzzle from
+/// @param puzzleCount Array size
+/// @details Launched by menuMain(), launches menuPlay() after puzzle is chosen
 void menuChoosePuzzle(PuzzleArray *puzzleArray, int puzzleCount) {
     clearDisplay();
     char buffer[BUFFER_SIZE];
@@ -774,6 +823,10 @@ void menuChoosePuzzle(PuzzleArray *puzzleArray, int puzzleCount) {
     
 }
 
+/// @brief Opens CLI to delete a puzzle from array
+/// @param puzzleArrayPtr Array to delete from
+/// @param puzzleCountPtr Array size
+/// @details Launched by menuManager() 
 void menuDelete(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr) {
     clearDisplay();
     char buffer[BUFFER_SIZE];
@@ -817,6 +870,10 @@ void menuDelete(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr) {
     }
 }
 
+/// @brief Opens CLI for algorithmic solver 
+/// @param puzzleArrayPtr Array to solve from
+/// @param puzzleCount Array size
+/// @details Launched by menuMain()
 void menuSolver(PuzzleArray *puzzleArrayPtr, int puzzleCount) {
     clearDisplay();
     char buffer[BUFFER_SIZE];
@@ -859,6 +916,10 @@ void menuSolver(PuzzleArray *puzzleArrayPtr, int puzzleCount) {
     }
 }
 
+/// @brief Opens CLI to show statistics
+/// @param puzzleArray Array to show statistic from
+/// @param puzzleCount Array size
+/// @details Launched by menuMain()
 void menuStats(PuzzleArray *puzzleArray, int puzzleCount) {
     clearDisplay();
     char buffer[BUFFER_SIZE];
@@ -896,6 +957,10 @@ void menuStats(PuzzleArray *puzzleArray, int puzzleCount) {
     }
 }
 
+/// @brief Opens CLI to generate a new puzzle
+/// @param puzzleArrayPtr Array to generate puzzle to
+/// @param puzzleCountPtr Array size
+/// @details Launched by menuManager()
 void menuGenerate(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr) {
     clearDisplay();
     char buffer[BUFFER_SIZE];
@@ -939,6 +1004,12 @@ void menuGenerate(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr) {
     }
 }
 
+/// @brief Opens CLI to reset data, navigate to menus to generate or delete puzzles
+/// @param puzzleArrayPtr Puzzle array to play from
+/// @param puzzleCountPtr Puzzle array size
+/// @param defaultPuzzleArray Default puzzle array to reset save to
+/// @param defaultPuzzleCount Default puzzle array size
+/// @details Launched by menuManager(), can launch menuGenerate(), menuDelete()
 void menuManager(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr, PuzzleArray defaultPuzzleArray, int defaultPuzzleCount) {
     clearDisplay();
     char buffer[BUFFER_SIZE];
@@ -995,6 +1066,12 @@ void menuManager(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr, PuzzleArray d
 
 }
 
+/// @brief Opens main CLI menu when program is launched, used to navigate to all other menus
+/// @param puzzleArray Puzzle array to play from
+/// @param puzzleCountPtr Puzzle array size
+/// @param defaultPuzzles Default puzzle array to reset save to
+/// @param defaultPuzzleCount Default puzzle array size
+/// @details Launched by main()
 void menuMain(PuzzleArray *puzzleArray, int *puzzleCountPtr, PuzzleArray defaultPuzzles, int defaultPuzzleCount) {
     clearDisplay();
     char buffer[BUFFER_SIZE];
@@ -1050,14 +1127,12 @@ int main() {
     logLaunch();
     atexit(logRuntime);
 
-    srand(time(NULL));
+    srand(time(NULL)); // seed for random values
 
-
-    
-    int currentID = 0; // add to read from file
     int puzzleArrayCount = 0;
-
     Puzzle *puzzleArray = NULL;
+
+    // Default puzzles to initialize with
     Puzzle exWrong1 = {{ // 1,1 --> 7
         {3, 1, 6, 5, 7, 8, 4, 9, 2},
         {5, 2, 9, 1, 3, 4, 7, 6, 8},
@@ -1068,7 +1143,7 @@ int main() {
         {1, 3, 8, 9, 4, 7, 2, 5, 6},
         {6, 9, 2, 3, 5, 1, 8, 7, 4},
         {0, 4, 5, 2, 8, 6, 3, 1, 9}
-        }};
+    }};
     Puzzle exWrong2 = {{ // 1,2 --> 4
         {3, 1, 6, 5, 7, 8, 4, 9, 2},
         {5, 2, 9, 1, 3, 4, 7, 6, 8},
@@ -1079,7 +1154,7 @@ int main() {
         {1, 3, 8, 9, 4, 7, 2, 5, 6},
         {6, 9, 0, 3, 5, 1, 8, 7, 4},
         {7, 4, 5, 2, 8, 6, 3, 1, 9}
-        }};
+    }};
     Puzzle exWrong3 = {{
         {3, 1, 6, 0, 7, 8, 4, 9, 2},
         {5, 2, 9, 1, 3, 4, 0, 6, 8},
@@ -1090,7 +1165,7 @@ int main() {
         {1, 3, 0, 9, 4, 7, 2, 5, 6},
         {6, 9, 2, 3, 5, 1, 8, 0, 4},
         {7, 0, 5, 2, 8, 6, 3, 1, 9}
-        }};
+    }};
     Puzzle exWrong4 = {{
         {3, 0, 6, 0, 7, 8, 4, 0, 2},
         {5, 2, 9, 1, 3, 4, 0, 0, 8},
@@ -1101,7 +1176,7 @@ int main() {
         {1, 3, 0, 0, 4, 7, 2, 5, 6},
         {6, 9, 2, 3, 5, 1, 8, 0, 4},
         {7, 0, 5, 2, 8, 6, 3, 1, 9}
-        }};
+    }};
 
     Puzzle defaultPuzzles[] = {exWrong1, exWrong2, exWrong3, exWrong4}; 
     int defaultPuzzleCount = (sizeof(defaultPuzzles) / sizeof(defaultPuzzles[0]));
@@ -1110,12 +1185,7 @@ int main() {
     loadDataFromFile(&puzzleArray, &puzzleArrayCount);
     menuMain(&puzzleArray, &puzzleArrayCount, defaultPuzzles, defaultPuzzleCount);
 
-    // printf("%i\n", countSolvedSudokus(puzzleArrayCount, puzzleArray));
-
     free(puzzleArray);
-
-    // printf("%Lf\n", readTotalRuntime());
-    // printf("%d\n", readLaunchCount());
 
     return 0;
 }

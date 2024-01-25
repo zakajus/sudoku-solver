@@ -16,10 +16,6 @@
 #include <stdbool.h>
 #include <time.h>
 
-#include <assert.h>
-// #include <ctype.h>
-// #include <math.h>
-
 
 /// @brief Binary save file name
 #define BIN_SAVE_FILENAME "save.bin"

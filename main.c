@@ -1,7 +1,7 @@
 /**
  * @file main.c
  * @author Kajus Zakaras (kajus.z@tuta.io)
- * @brief Handles puzzle initialization / saving, running log files, and launching the game loop
+ * @brief Handles launching the program, defining default puzzles
  * @version 1.00
  * @date 2024-01-25
  * 
@@ -37,7 +37,7 @@ int main() {
         {6, 9, 2, 3, 5, 1, 8, 7, 4},
         {0, 4, 5, 2, 8, 6, 3, 1, 9}
     }};
-    Puzzle exWrong2 = {{ // 1,2 --> 4
+    Puzzle exWrong2 = {{ 
         {3, 1, 6, 5, 7, 8, 4, 9, 2},
         {5, 2, 9, 1, 3, 4, 7, 6, 8},
         {4, 8, 7, 6, 2, 9, 5, 3, 1},

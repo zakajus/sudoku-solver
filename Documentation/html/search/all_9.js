@@ -1,0 +1,13 @@
+var searchData=
+[
+  ['main_2ec_0',['main.c',['../main_8c.html',1,'']]],
+  ['map_1',['map',['../structPuzzle.html#a933e8d504f87e87a8ecfb6bbe04a16ec',1,'Puzzle']]],
+  ['menuchoosepuzzle_2',['menuChoosePuzzle',['../ui_8c.html#abc492f7be9e1865acbeccb682a469a26',1,'menuChoosePuzzle(PuzzleArray *puzzleArray, int puzzleCount):&#160;ui.c'],['../ui_8h.html#abc492f7be9e1865acbeccb682a469a26',1,'menuChoosePuzzle(PuzzleArray *puzzleArray, int puzzleCount):&#160;ui.c']]],
+  ['menudelete_3',['menuDelete',['../ui_8c.html#a62afa7208d672c5e3d083bf0c51fc72c',1,'menuDelete(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr):&#160;ui.c'],['../ui_8h.html#a62afa7208d672c5e3d083bf0c51fc72c',1,'menuDelete(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr):&#160;ui.c']]],
+  ['menugenerate_4',['menuGenerate',['../ui_8c.html#a5245c12b1cfd8bb30d7b57c789c53406',1,'menuGenerate(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr):&#160;ui.c'],['../ui_8h.html#a5245c12b1cfd8bb30d7b57c789c53406',1,'menuGenerate(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr):&#160;ui.c']]],
+  ['menumain_5',['menuMain',['../ui_8c.html#a156f4298497d8091fbbed602b2d70b5e',1,'menuMain(PuzzleArray *puzzleArray, int *puzzleCountPtr, PuzzleArray defaultPuzzles, int defaultPuzzleCount):&#160;ui.c'],['../ui_8h.html#a156f4298497d8091fbbed602b2d70b5e',1,'menuMain(PuzzleArray *puzzleArray, int *puzzleCountPtr, PuzzleArray defaultPuzzles, int defaultPuzzleCount):&#160;ui.c']]],
+  ['menumanager_6',['menuManager',['../ui_8c.html#a5ee99fe00858aa2aa1c3475796dcbbda',1,'menuManager(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr, PuzzleArray defaultPuzzleArray, int defaultPuzzleCount):&#160;ui.c'],['../ui_8h.html#a5ee99fe00858aa2aa1c3475796dcbbda',1,'menuManager(PuzzleArray *puzzleArrayPtr, int *puzzleCountPtr, PuzzleArray defaultPuzzleArray, int defaultPuzzleCount):&#160;ui.c']]],
+  ['menuplay_7',['menuPlay',['../ui_8c.html#aacf6ffa52d18d98ab171221dd1752363',1,'menuPlay(Puzzle *puzzle):&#160;ui.c'],['../ui_8h.html#aacf6ffa52d18d98ab171221dd1752363',1,'menuPlay(Puzzle *puzzle):&#160;ui.c']]],
+  ['menusolver_8',['menuSolver',['../ui_8c.html#ad883a9a8185a2cd4ec47685c0b62f20e',1,'menuSolver(PuzzleArray *puzzleArrayPtr, int puzzleCount):&#160;ui.c'],['../ui_8h.html#ad883a9a8185a2cd4ec47685c0b62f20e',1,'menuSolver(PuzzleArray *puzzleArrayPtr, int puzzleCount):&#160;ui.c']]],
+  ['menustats_9',['menuStats',['../ui_8c.html#a9c0e77b1e07e1a59faecebd4aa5e77e9',1,'menuStats(PuzzleArray *puzzleArray, int puzzleCount):&#160;ui.c'],['../ui_8h.html#a9c0e77b1e07e1a59faecebd4aa5e77e9',1,'menuStats(PuzzleArray *puzzleArray, int puzzleCount):&#160;ui.c']]]
+];

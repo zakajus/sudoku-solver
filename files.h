@@ -1,3 +1,14 @@
+/**
+ * @file files.c
+ * @author Kajus Zakaras (kajus.z@tuta.io)
+ * @brief Header file for files.h
+ * @version 1.00
+ * @date 2024-01-25
+ * 
+ * @copyright Copyright (c) 2024
+ * 
+ */
+
 #ifndef FILES_H
 #define FILES_H
 

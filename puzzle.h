@@ -1,4 +1,13 @@
-
+/**
+ * @file puzzle.h
+ * @author Kajus Zakaras (kajus.z@tuta.io)
+ * @brief Header file for puzzle.h
+ * @version 1.00
+ * @date 2024-01-25
+ * 
+ * @copyright Copyright (c) 2024
+ * 
+ */
 
 #ifndef PUZZLE_H
 #define PUZZLE_H

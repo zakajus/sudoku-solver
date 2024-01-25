@@ -1,7 +1,7 @@
 /**
  * @file dependencies.h
  * @author Kajus Zakaras (kajus.z@tuta.io)
- * @brief Includes library dependencies, defines macros
+ * @brief Includes standard library dependencies, defines macros
  * @version 1.00
  * @date 2024-01-25
  * @copyright Copyright (c) 2024

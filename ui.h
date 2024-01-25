@@ -1,3 +1,14 @@
+/**
+ * @file ui.h
+ * @author Kajus Zakaras (kajus.z@tuta.io)
+ * @brief Header file for ui.c
+ * @version 1.00
+ * @date 2024-01-25
+ * 
+ * @copyright Copyright (c) 2024
+ * 
+ */
+
 #ifndef UI_I
 #define UI_I
 

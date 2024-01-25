@@ -1,3 +1,14 @@
+/**
+ * @file puzzle.c
+ * @author Kajus Zakaras (kajus.z@tuta.io)
+ * @brief Sudoku puzzle logic, dynamic array management
+ * @version 1.00
+ * @date 2024-01-25
+ * 
+ * @copyright Copyright (c) 2024
+ * 
+ */
+
 #include "./dependencies.h"
 #include "./puzzle.h"
 #include "./ui.h"

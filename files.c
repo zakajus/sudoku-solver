@@ -1,3 +1,14 @@
+/**
+ * @file files.c
+ * @author Kajus Zakaras (kajus.z@tuta.io)
+ * @brief Runtime and launch logging, saving / loading binary save data
+ * @version 1.00
+ * @date 2024-01-25
+ * 
+ * @copyright Copyright (c) 2024
+ * 
+ */
+
 #include "./dependencies.h"
 #include "./puzzle.h"
 #include "./ui.h"
